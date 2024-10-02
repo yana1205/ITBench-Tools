@@ -16,3 +16,6 @@ inject_fault:
 
 destroy_bundle:
 	ansible-playbook playbooks/destroy.yml
+
+evaluate:
+	ansible-playbook playbooks/eval.yml
