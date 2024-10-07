@@ -4,6 +4,7 @@ import sys
 from polaris_pac_bench.agent_operator import AgentOperator
 from polaris_pac_bench.benchmark import benchmark, evaluate_agent
 from polaris_pac_bench.bundle_operator import BundleOperator
+from polaris_pac_bench.models.agent import AgentInfo
 from polaris_pac_bench.models.benchmark import BenchmarkResult
 from polaris_pac_bench.models.bundle import Bundle, BundleResult, BundleStatus
 from tests import bundle_statues
@@ -45,16 +46,17 @@ def gen_mock_invoke_bundle(monkeypatch):
 
 def test_benchmark(monkeypatch):
 
-    agents = {
+    agent_success_map = {
         "agent1": True,
         "agent2": False,
     }
 
+    agents = [AgentInfo(name=x, directory=".") for x in agent_success_map.keys()]
     bundles = [Bundle(name="bundle", directory=".", status=bundle_statues.INITIAL)]
     monkeypatch.setattr(BundleOperator, "invoke_bundle", gen_mock_invoke_bundle(monkeypatch))
 
-    def mock_invoke_agent(self, agent, bundle_operator: BundleOperator, kubeconfig, policy_reports):
-        monkeypatch.setattr(sys.modules[__name__], "get_evaluation", lambda: {"pass": agents[agent], "report": []})
+    def mock_invoke_agent(self: AgentOperator, bundle_operator: BundleOperator, kubeconfig: str, report: str):
+        monkeypatch.setattr(sys.modules[__name__], "get_evaluation", lambda: {"pass": agent_success_map[self.agent_info.name], "report": []})
 
     monkeypatch.setattr(AgentOperator, "invoke_agent", mock_invoke_agent)
 
@@ -73,17 +75,18 @@ def test_evaluate_agent(monkeypatch):
 
     monkeypatch.setattr(BundleOperator, "invoke_bundle", gen_mock_invoke_bundle(monkeypatch))
 
-    def mock_invoke_agent(self, agent, bundle_operator: BundleOperator, kubeconfig, policy_reports):
+    def mock_invoke_agent(self, bundle_operator: BundleOperator, kubeconfig: str, report: str):
         monkeypatch.setattr(sys.modules[__name__], "get_evaluation", lambda: {"pass": bundles[bundle_operator.bundle.name], "report": []})
 
     monkeypatch.setattr(AgentOperator, "invoke_agent", mock_invoke_agent)
 
     bundle_results = evaluate_agent(
-        "agent1", [Bundle(name=x, directory=".", status=bundle_statues.INITIAL) for x in bundles.keys()], is_test=False, soft_delete=False
+        AgentInfo(name="agent1", directory="/tmp"),
+        [Bundle(name=x, directory=".", status=bundle_statues.INITIAL) for x in bundles.keys()],
+        is_test=False,
+        soft_delete=False,
     )
     df = BundleResult.to_dataframe(bundle_results)
     df[BundleResult.Column.ttr] = df[BundleResult.Column.ttr].dt.total_seconds()
-    assert not df[(df[BundleResult.Column.bundle] == "bundle1") & (df[BundleResult.Column.passed] == True)].empty
-    assert not df[
-        (df[BundleResult.Column.bundle] == "bundle2") & (df[BundleResult.Column.passed] == False) & (df[BundleResult.Column.ttr] > 10)
-    ].empty
+    assert not df[(df[BundleResult.Column.name] == "bundle1") & (df[BundleResult.Column.passed] == True)].empty
+    assert not df[(df[BundleResult.Column.name] == "bundle2") & (df[BundleResult.Column.passed] == False) & (df[BundleResult.Column.ttr] > 10)].empty
