@@ -28,6 +28,7 @@ polaris-pac-bench = "polaris_pac_bench.main:main"
 [project.optional-dependencies]
 dev = [
   "build>=1.0.3",
+  "pyclean",
   "pytest>=8.0.0",
   "pre-commit>=2.4.0",
   "black",
@@ -64,6 +65,8 @@ exclude = '''
   | buck-out
   | build
   | dist
+  | polaris-pac-agent
+  | polaris-pac-bundle
 )/
 '''
 
