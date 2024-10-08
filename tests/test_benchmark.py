@@ -1,12 +1,12 @@
 import json
 import sys
 
-from polaris_pac_bench.agent_operator import AgentOperator
-from polaris_pac_bench.benchmark import benchmark, evaluate_agent
-from polaris_pac_bench.bundle_operator import BundleOperator
-from polaris_pac_bench.models.agent import AgentInfo
-from polaris_pac_bench.models.benchmark import BenchmarkResult
-from polaris_pac_bench.models.bundle import Bundle, BundleResult, BundleStatus
+from caa_bench.agent_operator import AgentOperator
+from caa_bench.benchmark import benchmark, evaluate_agent
+from caa_bench.bundle_operator import BundleOperator
+from caa_bench.models.agent import AgentInfo
+from caa_bench.models.benchmark import BenchmarkResult
+from caa_bench.models.bundle import Bundle, BundleResult, BundleStatus
 from tests import bundle_statues
 
 

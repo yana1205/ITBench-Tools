@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List, Optional, Tuple
 
-from polaris_pac_bench.models.bundle import BundleCondition, BundleStatus
+from caa_bench.models.bundle import BundleCondition, BundleStatus
 
 
 def build(type_status_reason_trios: List[Tuple[str, str, Optional[str]]], current: Optional[BundleStatus] = None) -> BundleStatus:

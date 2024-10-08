@@ -3,7 +3,7 @@ requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "polaris-pac-bench"
+name = "caa-bench"
 requires-python = ">=3.11"
 keywords = ["one", "two"]
 classifiers = [
@@ -23,7 +23,7 @@ dependencies = [
 dynamic = ["version"]
 
 [project.scripts]
-polaris-pac-bench = "polaris_pac_bench.main:main"
+caa-bench = "caa_bench.main:main"
 
 [project.optional-dependencies]
 dev = [
@@ -36,10 +36,10 @@ dev = [
 ]
 
 [tool.setuptools.dynamic]
-version = {attr = "polaris_pac_bench.__version__.__version__"}
+version = {attr = "caa_bench.__version__.__version__"}
 
 [tool.setuptools]
-package-dir = { "polaris_pac_bench" = "polaris_pac_bench" }
+package-dir = { "caa_bench" = "caa_bench" }
 
 [tool.pytest.ini_options]
 log_cli = true
@@ -65,8 +65,8 @@ exclude = '''
   | buck-out
   | build
   | dist
-  | polaris-pac-agent
-  | polaris-pac-bundle
+  | caa-agent
+  | caa-bundle
 )/
 '''
 
