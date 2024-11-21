@@ -4,10 +4,10 @@ from pathlib import Path
 from typing import Any, Dict
 
 from caa_bench.agent_operator import AgentOperator
-from caa_bench.benchmark import benchmark, evaluate, write_for_leaderboard
+from caa_bench.benchmark import Benchmark, write_for_leaderboard
 from caa_bench.bundle_operator import BundleOperator
 from caa_bench.models.agent import AgentInfo
-from caa_bench.models.benchmark import BenchConfig
+from caa_bench.models.benchmark import BenchConfig, BenchRunConfig
 from caa_bench.models.bundle import Bundle, BundleRequest, BundleResult, BundleStatus
 from tests import bundle_statues
 
@@ -60,23 +60,23 @@ def test_evaluate_agent(monkeypatch):
 
     monkeypatch.setattr(BundleOperator, "invoke_bundle", gen_mock_invoke_bundle(monkeypatch))
 
-    def mock_invoke_agent(self, bundle_operator: BundleOperator, bundle_entity: Dict[str, Any]):
+    def mock_invoke_agent(self, bundle_operator: BundleOperator, bundle_entity: Dict[str, Any], output_dir: Path):
         monkeypatch.setattr(sys.modules[__name__], "get_evaluation", lambda: {"pass": bundles[bundle_operator.bundle.name], "report": []})
 
     monkeypatch.setattr(AgentOperator, "invoke_agent", mock_invoke_agent)
 
     bench_config = BenchConfig(title="test", is_test=True, soft_delete=False, resolution_wait=1)
-    ao = AgentOperator(AgentInfo(name="agent1", directory="/tmp"))
+    ao = AgentOperator(AgentInfo(id="test", name="agent1", directory="/tmp"))
     bos = [
         BundleOperator(
-            bundle=Bundle(name=x, directory=".", incident_type="test", status=bundle_statues.INITIAL),
+            bundle=Bundle(id="test", name=x, directory=".", incident_type="test", status=bundle_statues.INITIAL),
             bundle_request=BundleRequest(shared_workspace="/tmp/shared"),
         )
         for x in bundles.keys()
     ]
     bundle_results = []
     for bo in bos:
-        bundle_results = bundle_results + evaluate(ao, bo, OUTPUT_DIR, bench_config)
+        bundle_results = bundle_results + Benchmark().evaluate(ao, bo, OUTPUT_DIR, bench_config)
     df = BundleResult.to_dataframe(bundle_results)
     df[BundleResult.Column.ttr] = df[BundleResult.Column.ttr].dt.total_seconds()
     assert not df[(df[BundleResult.Column.name] == "bundle1") & (df[BundleResult.Column.passed] == True)].empty
@@ -95,11 +95,11 @@ def test_benchmark(monkeypatch):
         "agent2": False,
     }
 
-    agents = [AgentInfo(name=x, directory=".") for x in agent_success_map.keys()]
-    bundles = [Bundle(name=x, directory=".", incident_type="test", status=bundle_statues.INITIAL) for x in bundle_map.keys()]
+    agents = [AgentInfo(id="test", name=x, directory=".") for x in agent_success_map.keys()]
+    bundles = [Bundle(id="test", name=x, directory=".", incident_type="test", status=bundle_statues.INITIAL) for x in bundle_map.keys()]
     monkeypatch.setattr(BundleOperator, "invoke_bundle", gen_mock_invoke_bundle(monkeypatch))
 
-    def mock_invoke_agent(self: AgentOperator, bundle_operator: BundleOperator, bundle_entity: Dict[str, Any]):
+    def mock_invoke_agent(self: AgentOperator, bundle_operator: BundleOperator, bundle_entity: Dict[str, Any], output_dir: Path):
         monkeypatch.setattr(
             sys.modules[__name__],
             "get_evaluation",
@@ -109,5 +109,8 @@ def test_benchmark(monkeypatch):
     monkeypatch.setattr(AgentOperator, "invoke_agent", mock_invoke_agent)
 
     bench_config = BenchConfig(title="test", is_test=True, soft_delete=False, resolution_wait=1)
-    benchmark_results = benchmark(agents, bundles, OUTPUT_DIR, bench_config)
+    bench_run_config = BenchRunConfig(
+        benchmark_id="test", push_model=False, config=bench_config, agents=agents, bundles=bundles, output_dir=OUTPUT_DIR.as_posix()
+    )
+    benchmark_results = Benchmark().benchmark(bench_run_config)
     write_for_leaderboard(benchmark_results, OUTPUT_DIR)
