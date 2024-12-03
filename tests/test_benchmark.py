@@ -4,7 +4,8 @@ from pathlib import Path
 from typing import Any, Dict
 
 from caa_bench.agent_operator import AgentOperator
-from caa_bench.benchmark import Benchmark, write_for_leaderboard
+from caa_bench.benchmark import write_for_leaderboard
+from caa_bench.benchmark import Benchmark
 from caa_bench.bundle_operator import BundleOperator
 from caa_bench.models.agent import AgentInfo
 from caa_bench.models.benchmark import BenchConfig, BenchRunConfig
