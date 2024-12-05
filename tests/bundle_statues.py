@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import List, Optional, Tuple
 
-from caa_bench.models.bundle import BundleCondition, BundleStatus
+from agent_bench_automation.models.bundle import BundleCondition, BundleStatus
 
 
 def build(type_status_reason_trios: List[Tuple[str, str, Optional[str]]], current: Optional[BundleStatus] = None) -> BundleStatus:
