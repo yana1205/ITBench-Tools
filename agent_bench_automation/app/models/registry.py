@@ -3,8 +3,13 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 
-from agent_bench_automation.app.models.agent import Agent, AgentAccessInfo, BundleAccessInfo
+from agent_bench_automation.app.models.agent import (
+    Agent,
+    AgentAccessInfo,
+    BundleAccessInfo,
+)
 from agent_bench_automation.app.models.bundle import Bundle
+from agent_bench_automation.app.models.scenario import Scenario
 
 
 class User(BaseModel):
@@ -22,12 +27,14 @@ class RegistryItem(BaseModel):
     creation_timestamp: datetime
     bundles: List[Bundle] = []
     agents: List[Agent] = []
+    scenarios: List[Scenario] = []
 
 
 class BenchmarkRequest(BaseModel):
     name: str
     agent_id: str
-    bundle_ids: List[str]
+    bundle_ids: Optional[List[str]] = None
+    scenario_ids: Optional[List[str]] = None
 
 
 class BenchmarkInfo(BaseModel):
@@ -38,6 +45,7 @@ class BenchmarkInfo(BaseModel):
     agent_access: Optional[AgentAccessInfo] = None
     bundle_accesses: Optional[List[BundleAccessInfo]] = None
     agents: Optional[List[Agent]] = None
+    scenarios: Optional[List[Scenario]] = None
     bundles: Optional[List[Bundle]] = None
     root_benchmark_id: Optional[str] = None
     root_agents: Optional[List[Agent]] = None

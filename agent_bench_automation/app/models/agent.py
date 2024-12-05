@@ -3,6 +3,7 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 from agent_bench_automation.app.models.base import Env, Metadata, Status
+from agent_bench_automation.app.models.scenario import Scenario
 
 
 class AgentAccessInfo(BaseModel):
@@ -35,6 +36,9 @@ class AgentManifest(BaseModel):
 
 class AgentSpec(BaseModel):
     name: str
+    type: Optional[str] = None
+    level: Optional[str] = None
+    scenario_category: Optional[str] = None
     path: Optional[str] = None
     mode: Optional[str] = "remote"
     env: Optional[List[Env]] = None
