@@ -1,9 +1,10 @@
-FROM python:3.11.10
+FROM python:3.11.10-slim
 
+RUN apt update -y && apt install -y curl gnupg2
 RUN mkdir /etc/agent-benchmark
 COPY agent_bench_automation /etc/agent-benchmark/agent_bench_automation
 COPY pyproject.toml /etc/agent-benchmark/pyproject.toml
-RUN pip install -e /etc/agent-benchmark
+RUN pip install -e /etc/agent-benchmark --no-cache-dir
 COPY docs /etc/agent-benchmark/docs
 COPY data /etc/agent-benchmark/data
 RUN ln -sf /bin/bash /bin/sh
@@ -13,10 +14,10 @@ RUN ln -sf /bin/bash /bin/sh
 # Install caa-agent dependencies 
 #######################################
 
-RUN pip install -r /etc/agent-benchmark/agent_bench_automation/agent_harness/requirements.txt
+RUN pip install -r /etc/agent-benchmark/agent_bench_automation/agent_harness/requirements.txt --no-cache-dir
 
 # install `ansible-playbook`
-RUN pip install ansible jmespath kubernetes
+RUN pip install ansible-core jmespath kubernetes --no-cache-dir
 RUN ansible-galaxy collection install kubernetes.core
 # install `jq`
 RUN apt update -y && apt install -y jq
