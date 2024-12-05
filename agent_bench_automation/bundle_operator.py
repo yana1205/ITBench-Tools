@@ -164,7 +164,7 @@ class BundleOperator:
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 universal_newlines=True,
-                cwd=self.bundle.get_path(),
+                cwd=self.bundle.get_path().as_posix(),
                 env=current_env,
             )
 
