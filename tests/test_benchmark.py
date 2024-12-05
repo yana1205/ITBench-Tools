@@ -3,13 +3,13 @@ import sys
 from pathlib import Path
 from typing import Any, Dict
 
-from caa_bench.agent_operator import AgentOperator
-from caa_bench.benchmark import write_for_leaderboard
-from caa_bench.benchmark import Benchmark
-from caa_bench.bundle_operator import BundleOperator
-from caa_bench.models.agent import AgentInfo
-from caa_bench.models.benchmark import BenchConfig, BenchRunConfig
-from caa_bench.models.bundle import Bundle, BundleRequest, BundleResult, BundleStatus
+from agent_bench_automation.agent_operator import AgentOperator
+from agent_bench_automation.benchmark import write_for_leaderboard
+from agent_bench_automation.benchmark import Benchmark
+from agent_bench_automation.bundle_operator import BundleOperator
+from agent_bench_automation.models.agent import AgentInfo
+from agent_bench_automation.models.benchmark import BenchConfig, BenchRunConfig
+from agent_bench_automation.models.bundle import Bundle, BundleRequest, BundleResult, BundleStatus
 from tests import bundle_statues
 
 OUTPUT_DIR = Path("tmp_test")
