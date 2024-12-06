@@ -17,8 +17,8 @@ def main():
     parser.add_argument("-v", "--verbose", help="Display verbose output", action="count", default=0)
 
     # normal bench runner
-    parser.add_argument("-c", "--config", type=str, help="Path to the application configuration.", required=True)
-    parser.add_argument("-i", "--runner_id", type=str, help="Unique identifier for the runner.", required=True)
+    parser.add_argument("-c", "--config", type=str, help="Path to the application configuration.")
+    parser.add_argument("-i", "--runner_id", type=str, help="Unique identifier for the runner.")
 
     # mini bench runner
     parser.add_argument("--mini", action="store_true", help="If specified, run in the old mode i.e. \"mini bench runner\"")
@@ -28,7 +28,7 @@ def main():
     parser.add_argument(
         "--remote_port", type=int, default=DEFAULT_PORT, help=f"The port number to remote Benchmark Server (default: {DEFAULT_PORT})."
     )
-    parser.add_argument("--remote_token", type=str, help=f"Bearer token of Benchmark Server.", required=True)
+    parser.add_argument("--remote_token", type=str, help=f"Bearer token of Benchmark Server.")
     parser.add_argument(
         "--minibench_host",
         type=str,
