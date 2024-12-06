@@ -1,20 +1,17 @@
 import json
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from fastapi import Request
-from jose import jwt
 
 from agent_bench_automation.app.config import (
-    HASH_ALGORITHM,
-    SECRET_KEY,
     TOKEN_SESSION_KEY,
     AppConfig,
     DefaultBundle,
 )
 from agent_bench_automation.app.models.base import Status
 from agent_bench_automation.app.models.bundle import BundleSpec
-from agent_bench_automation.app.models.user import TokenPayload
+from agent_bench_automation.app.token_manager import TokenManager
 
 
 def get_tempdir(id: str):
@@ -46,3 +43,9 @@ def load_default_bundles_from_file(app_config: AppConfig) -> List[DefaultBundle]
 
 def get_token_from_session(request: Request) -> Optional[str]:
     return request.session.get(TOKEN_SESSION_KEY)
+
+
+def get_username_from_session(request: Request) -> Optional[str]:
+    token_str = request.session.get(TOKEN_SESSION_KEY)
+    token = TokenManager(verify=False).parse_token(token_str)
+    return token.name
