@@ -2,6 +2,7 @@ import json
 import logging
 import shutil
 import time
+import json
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -212,6 +213,11 @@ class Benchmark:
 
             if agent_result.success:
                 bench_client.push_bundle_status(bundle_id, BundlePhaseEnum.Evaluating)
+                # Save the agent output in the shared workspace for sre-bundle evaluation
+                if bundle.incident_type == "SRE":
+                    agent_output = bench_client.get_agent_status(ao.agent_info.id).status.message
+                    with open(f"{bundle_entity["shared_workspace"]}/agent_output.json", "w") as f:
+                        json.dump(json.loads(agent_output), f)
                 # TODO: Address time lag on the incident report to be up to date
                 if bo.bundle.enable_evaluation_wait:
                     bo.wait_for_violation_resolved(timeout=bench_config.resolution_wait)
@@ -228,7 +234,7 @@ class Benchmark:
                 bench_client.push_bundle_status(bundle_id, BundlePhaseEnum.Terminating)
             else:
                 bo.delete_bundle()
-                bench_client.push_bundle_status(bench_run_config, bundle_id, BundlePhaseEnum.Terminating)
+                bench_client.push_bundle_status(bundle_id, BundlePhaseEnum.Terminating)
 
             bench_client.push_bundle_status(bundle_id, BundlePhaseEnum.Terminated)
 
