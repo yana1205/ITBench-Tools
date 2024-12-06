@@ -1,9 +1,8 @@
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
 
 from agent_bench_automation.app.models.base import Env, Metadata, Status
-from agent_bench_automation.app.models.scenario import Scenario
 
 
 class AgentAccessInfo(BaseModel):
@@ -39,6 +38,7 @@ class AgentSpec(BaseModel):
     type: Optional[str] = None
     level: Optional[str] = None
     scenario_category: Optional[str] = None
+    task_and_expected_output: Optional[Dict[str, Any]] = {}
     path: Optional[str] = None
     mode: Optional[str] = "remote"
     env: Optional[List[Env]] = None

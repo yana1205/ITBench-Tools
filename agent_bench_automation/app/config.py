@@ -3,6 +3,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
+from agent_bench_automation.app.models.agent_type_definition import AgentTypeDefinition
 from agent_bench_automation.app.models.bundle import BundleSpec
 from agent_bench_automation.app.storage.factory import StorageConfig
 
@@ -39,3 +40,4 @@ class AppConfig(BaseModel):
     enable_auth: Optional[bool] = False
     enable_soft_delete: Optional[bool] = Field(False, description="Specifies whether to enable soft-delete (invoke Make revert).")
     token: Optional[str] = None
+    default_agent_types: Optional[List[AgentTypeDefinition]] = Field([], description="Default Agent Type Definitions")

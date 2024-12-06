@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel
 
@@ -8,6 +8,7 @@ from agent_bench_automation.app.models.agent import (
     AgentAccessInfo,
     BundleAccessInfo,
 )
+from agent_bench_automation.app.models.base import Status
 from agent_bench_automation.app.models.bundle import Bundle
 from agent_bench_automation.app.models.scenario import Scenario
 
@@ -37,6 +38,17 @@ class BenchmarkRequest(BaseModel):
     scenario_ids: Optional[List[str]] = None
 
 
+class DataForAgentRegistration(BaseModel):
+    available_types: List[str] = []
+    type_to_avalable_levels: Dict[str, List[str]] = None
+    type_to_avalable_categories: Dict[str, List[str]] = None
+
+
+class CreateBenchmarkRequest(BaseModel):
+    name: str
+    agent_id: str
+
+
 class BenchmarkInfo(BaseModel):
     id: str
     name: str
@@ -50,3 +62,4 @@ class BenchmarkInfo(BaseModel):
     root_benchmark_id: Optional[str] = None
     root_agents: Optional[List[Agent]] = None
     root_bundles: Optional[List[Bundle]] = None
+    status: Optional[Status] = None
