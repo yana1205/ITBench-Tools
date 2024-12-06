@@ -91,7 +91,9 @@ class BenchmarkRunner:
             response = client.get(f"{base_endpoint}/agents")
             _agents = [AgentInApp.model_validate(x) for x in response.json()]
 
-            bench_run_config = build_benchmark_run_config(benchmark, _agents, _bundles, self.host, self.port, token)
+            bench_run_config = build_benchmark_run_config(
+                benchmark, _agents, _bundles, self.app_config.enable_soft_delete, self.host, self.port, token
+            )
 
             _logger = setup_request_logger(benchmark_id)
             logfilepath = get_specific_log_file_path(_logger, benchmark_id)
@@ -119,6 +121,7 @@ def build_benchmark_run_config(
     benchmark: Benchmark,
     agents: List[AgentInApp],
     bundles: List[BundleInApp],
+    enable_safe_delete: Optional[bool] = False,
     host: Optional[str] = None,
     port: Optional[int] = None,
     token: Optional[str] = None,
@@ -142,7 +145,7 @@ def build_benchmark_run_config(
         for x in bundles
     ]
 
-    bench_config = BenchConfig(title=benchmark.spec.name, is_test=False, soft_delete=True)
+    bench_config = BenchConfig(title=benchmark.spec.name, is_test=False, soft_delete=enable_safe_delete)
     bench_run_config = BenchRunConfig(
         benchmark_id=benchmark_id,
         push_model=True,

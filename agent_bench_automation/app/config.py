@@ -37,4 +37,5 @@ class AppConfig(BaseModel):
     storage_config: StorageConfig
     default_bundles: Optional[List[DefaultBundle]] = Field([], description="Default bundles")
     enable_auth: Optional[bool] = False
+    enable_soft_delete: Optional[bool] = Field(False, description="Specifies whether to enable soft-delete (invoke Make revert).")
     token: Optional[str] = None
