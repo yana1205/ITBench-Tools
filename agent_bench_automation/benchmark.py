@@ -216,7 +216,7 @@ class Benchmark:
                 # Save the agent output in the shared workspace for sre-bundle evaluation
                 if bundle.incident_type == "SRE":
                     agent_output = bench_client.get_agent_status(ao.agent_info.id).status.message
-                    with open(f"{bundle_entity["shared_workspace"]}/agent_output.json", "w") as f:
+                    with open(f"{bundle_entity['shared_workspace']}/agent_output.json", "w") as f:
                         json.dump(json.loads(agent_output), f)
                 # TODO: Address time lag on the incident report to be up to date
                 if bo.bundle.enable_evaluation_wait:
