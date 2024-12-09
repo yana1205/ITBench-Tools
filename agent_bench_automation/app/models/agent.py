@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel
 
 from agent_bench_automation.app.models.base import Env, Metadata, Status
+from agent_bench_automation.app.models.agent_type_definition import AgentTypeTask
 
 
 class AgentAccessInfo(BaseModel):
@@ -33,12 +34,19 @@ class AgentManifest(BaseModel):
     benchmark_entries: List[AgentBenchmarkEntry] = []
 
 
+class AgentExpectedApiResponse(BaseModel):
+    task_list: List[AgentTypeTask] = []
+    sample_api_response: Dict[str, Any] = {}
+    sample_url: str
+    sample_cli: str
+
+
 class AgentSpec(BaseModel):
     name: str
     type: Optional[str] = None
     level: Optional[str] = None
-    scenario_category: Optional[str] = None
-    task_and_expected_output: Optional[Dict[str, Any]] = {}
+    scenario_categories: Optional[List[str]] = []
+    expected_api_response: Optional[AgentExpectedApiResponse] = None
     path: Optional[str] = None
     mode: Optional[str] = "remote"
     env: Optional[List[Env]] = None

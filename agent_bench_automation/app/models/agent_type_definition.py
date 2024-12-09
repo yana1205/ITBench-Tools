@@ -3,6 +3,11 @@ from typing import Any, Dict, List
 from pydantic import BaseModel, Field
 
 
+class AgentTypeTask(BaseModel):
+    name: str = Field(..., description="Task name, e.g. generate_assessment")
+    description: str = Field(..., description="Task description, e.g., Time to Generate Assessment Posture (seconds)")
+
+
 class AgentTypeDefinition(BaseModel):
     id: str = Field(..., description="The human readable unique identifier for the Agent type, e.g., 'SRE' or 'Compliance'.")
     allowed_levels: List[str] = Field(
@@ -18,7 +23,5 @@ class AgentTypeDefinition(BaseModel):
     level_to_complexities_map: Dict[str, List[str]] = Field(
         ..., description="A mapping of Agent levels to the corresponding scenario complexity levels."
     )
-    category_to_task_map: Dict[str, Any] = Field(
-        ..., description="A mapping of Agent category to the corresponding scenario tasks and sample json expected."
-    )
+    tasks: List[AgentTypeTask] = Field(..., description="A list of Agent task definition")
     sampling_number: int = Field(..., description="The maximum number of sampled scenarios")
