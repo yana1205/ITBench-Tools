@@ -35,6 +35,7 @@ TOKEN_EXPIRATION_MINUTES = 60
 BASE_RESOURCE_REF_LABEL = "reference_id"
 ROOT_BENCHMARK_LABEL = "root"
 BENCHMARK_RESOURCE_ROOT = "_system"
+ROOT_PATH = os.getenv("ROOT_PATH", "")
 
 
 class DefaultBundle(BaseModel):

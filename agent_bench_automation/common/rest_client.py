@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 class RestClient:
     def __init__(self, host: str, port: int, headers: Optional[Dict[str, str]] = None):
-        self.base_url = f"http://{host}:{port}"
+        self.base_url = f"http://{host}:{port}" if port > 0 else f"http://{host}"
         self.headers = headers
         if self.headers:
             self.headers["Content-type"] = "application/json"
@@ -33,7 +33,8 @@ class RestClient:
             self.headers = {"Content-type": "application/json"}
 
     def get(self, endpoint: str, params: Optional[Dict[str, Any]] = None) -> requests.Response:
-        url = f"{self.base_url}/{endpoint}"
+        _endpoint = endpoint.lstrip("/")
+        url = f"{self.base_url}/{_endpoint}"
         response = requests.get(url, headers=self.headers, params=params)
         response.raise_for_status()
         return response
@@ -44,7 +45,8 @@ class RestClient:
         return response
 
     def put(self, endpoint: str, body, params: Optional[Dict[str, Any]] = None) -> requests.Response:
-        url = f"{self.base_url}/{endpoint}"
+        _endpoint = endpoint.lstrip("/")
+        url = f"{self.base_url}/{_endpoint}"
         response = requests.put(
             url,
             headers=self.headers,
@@ -54,7 +56,8 @@ class RestClient:
         return response
 
     def post(self, endpoint: str, body, params: Optional[Dict[str, Any]] = None) -> requests.Response:
-        url = f"{self.base_url}/{endpoint}"
+        _endpoint = endpoint.lstrip("/")
+        url = f"{self.base_url}/{_endpoint}"
         response = requests.post(
             url,
             headers=self.headers,

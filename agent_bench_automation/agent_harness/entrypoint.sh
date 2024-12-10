@@ -11,7 +11,12 @@ echo "Installing agent..."
 pip install -e /etc/mounted_agent > /dev/null
 echo "The agent has been installed. Start running harness."
 
-curl -s -X GET -H "Authorization: Bearer $agent_token" "$remote_host:$remote_port/registry/agent-manifest/$agent_id" > /tmp/agent-manifest.json
+endpoint="$remote_host"
+if [[ $remote_port -gt 0 ]]; then
+        endpoint="$remote_host:$remote_port"
+fi
+
+curl -s -X GET -H "Authorization: Bearer $agent_token" "$endpoint/registry/agent-manifest/$agent_id" > /tmp/agent-manifest.json
 echo "Agent manifest has been obtained."
 
 python -u agent_bench_automation/agent_harness/main.py \

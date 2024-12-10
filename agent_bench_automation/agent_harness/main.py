@@ -32,7 +32,7 @@ def main():
         "--host", type=str, default=DEFAULT_MINIBENCH_HOST, help=f"The hostname or IP address (default: {DEFAULT_MINIBENCH_HOST})."
     )
     parser.add_argument(
-        "--port", type=int, default=DEFAULT_MINIBENCH_PORT, help=f"The port number (default: {DEFAULT_MINIBENCH_PORT})."
+        "--port", type=int, default=-1, help=f"The port number (Set -1 if you don't use port number)."
     )
     parser.add_argument("-ad", "--agent_directory", type=str, default="caa-agent", help=f"Path to root directory of Agent project")
     parser.add_argument("-i", "--input", type=str, help="Path to MiniBenchResult", required=True)
