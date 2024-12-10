@@ -73,6 +73,9 @@ class Bundle(BundleInfo):
     make_target_mapping: Optional[MakeTargetMapping] = None
     enable_evaluation_wait: Optional[bool] = Field(False)
 
+    polling_interval: Optional[int] = None
+    use_input_file: Optional[bool] = True  # TODO: remove when bundle is ready for both CAA and SRE
+
     def get_path(self) -> Path:
         return Path(self.directory)
 

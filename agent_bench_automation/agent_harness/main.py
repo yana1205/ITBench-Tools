@@ -28,14 +28,11 @@ def main():
     parser.add_argument("-v", "--verbose", help="Display verbose output", action="count", default=0)
 
     # caa agent harness
-    parser.add_argument(
-        "--host", type=str, default=DEFAULT_MINIBENCH_HOST, help=f"The hostname or IP address (default: {DEFAULT_MINIBENCH_HOST})."
-    )
-    parser.add_argument(
-        "--port", type=int, default=-1, help=f"The port number (Set -1 if you don't use port number)."
-    )
+    parser.add_argument("--host", type=str, default=DEFAULT_MINIBENCH_HOST, help=f"The hostname or IP address (default: {DEFAULT_MINIBENCH_HOST}).")
+    parser.add_argument("--port", type=int, default=-1, help=f"The port number (Set -1 if you don't use port number).")
     parser.add_argument("-ad", "--agent_directory", type=str, default="caa-agent", help=f"Path to root directory of Agent project")
     parser.add_argument("-i", "--input", type=str, help="Path to MiniBenchResult", required=True)
+    parser.add_argument("-c", "--config", type=str, help="Path to Agent Harness Config file")
 
     args = parser.parse_args()
 

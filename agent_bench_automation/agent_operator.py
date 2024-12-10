@@ -21,8 +21,7 @@ from typing import Any, Dict, Optional, Tuple
 
 from jinja2 import Template
 
-from agent_bench_automation.bundle_operator import BundleOperator
-from agent_bench_automation.models.agent import AgentInfo
+from agent_bench_automation.models.agent import AgentInfo, AgentRunCommand
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +31,27 @@ class AgentOperator:
     def __init__(self, agent_info: AgentInfo, _logger: Optional[logging.Logger] = None) -> None:
         self.agent_info = agent_info
         self.logger = _logger if _logger else logger
+
+    def invoke_by_cmd(self, bundle_name: str, run_command: AgentRunCommand) -> str:
+        logger = self.logger
+
+        logger.info(f"Invoke Agent by provided command for '{bundle_name}'...")
+        cwd = f"{self.agent_info.directory}"
+        cmd = run_command.command
+        if run_command.args:
+            cmd = cmd + run_command.args
+        cmd = " ".join(cmd)
+        logger.info(f"Command: {cmd}")
+
+        env = None
+        if run_command.env:
+            env = [dict([x.name, x.value]) for x in run_command.env]
+        stdout, stderr = self.run_cmd(cwd, env, cmd)
+        logger.info(f"Finish Agent tasks for '{bundle_name}'...")
+        if stderr:
+            raise Exception(stderr)
+
+        return stdout
 
     def invoke_agent(self, bundle_name: str, shared_workspace: str, bundle_entity: Dict[str, Any], output_dir: Path) -> str:
         logger = self.logger
@@ -52,7 +72,7 @@ class AgentOperator:
         cwd = f"{self.agent_info.directory}"
         cmd = f"source .venv/bin/activate; python src/caa_agent/main.py --goal \"{goal}\" --auto-approve -o {opath.as_posix()}"
         logger.info(f"Command: {cmd}")
-        stdout, stderr = self.run_cmd(cwd, cmd)
+        stdout, stderr = self.run_cmd(cwd, None, cmd)
 
         try:
             shutil.copytree(shared_workspace, output_dir / "shared_workspace", dirs_exist_ok=True)
@@ -66,10 +86,13 @@ class AgentOperator:
 
         return stdout
 
-    def run_cmd(self, cwd, *argv) -> Tuple[Optional[str], Optional[str]]:
+    def run_cmd(self, cwd, env: Optional[Dict[str, str]] = None, *argv) -> Tuple[Optional[str], Optional[str]]:
         logger = self.logger
 
         current_env = os.environ.copy()
+        if env:
+            current_env.update(env)
+
         process = subprocess.Popen(
             argv,
             stdout=subprocess.PIPE,

@@ -70,3 +70,10 @@ class RestClient:
         url = f"{self.base_url}/benchmarks/{benchmark_id}/agents/{agent_id}/status"
         status = create_status(phase.value, message)
         requests.put(url, headers=self.headers, data=status.model_dump_json())
+
+    def upload_file(self, benchmark_id: str, file_path: str, new_file_name: str):
+        with open(file_path, "rb") as file:
+            files = {"file": (new_file_name, file)}
+            url = f"{self.base_url}/benchmarks/{benchmark_id}/file"
+            response = requests.post(url, headers={"Authorization": self.headers["Authorization"]}, files=files)
+            response.raise_for_status()

@@ -36,6 +36,10 @@ def get_timestamp() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def get_timestamp_iso() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
 def create_status(phase: str, message: Optional[str] = None) -> Status:
     return Status(lastTransitionTime=get_timestamp(), phase=phase, message=message)
 

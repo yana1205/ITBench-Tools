@@ -27,7 +27,7 @@ from agent_bench_automation.app.config import (
 )
 from agent_bench_automation.app.models.agent import Agent
 from agent_bench_automation.app.models.agent import Agent as AgentInApp
-from agent_bench_automation.app.models.base import BenchmarkPhaseEnum, BundlePhaseEnum
+from agent_bench_automation.app.models.base import BenchmarkPhaseEnum
 from agent_bench_automation.app.models.benchmark import Benchmark
 from agent_bench_automation.app.models.bundle import Bundle as BundleInApp
 from agent_bench_automation.app.storage.factory import StorageFactory, StorageInterface
@@ -106,7 +106,14 @@ class BenchmarkRunner:
             _agents = [AgentInApp.model_validate(x) for x in response.json()]
 
             bench_run_config = build_benchmark_run_config(
-                benchmark, _agents, _bundles, self.app_config.enable_soft_delete, self.host, self.port, token
+                benchmark,
+                _agents,
+                _bundles,
+                self.app_config.enable_soft_delete,
+                self.host,
+                self.port,
+                token,
+                self.interval,
             )
 
             _logger = setup_request_logger(benchmark_id)
@@ -139,6 +146,7 @@ def build_benchmark_run_config(
     host: Optional[str] = None,
     port: Optional[int] = None,
     token: Optional[str] = None,
+    interval: Optional[int] = None,
 ) -> BenchRunConfig:
     benchmark_id = benchmark.metadata.id
     agent_infos = [AgentInfo(id=x.metadata.id, name=x.spec.name, directory=x.spec.path if x.spec.path else "", mode=x.spec.mode) for x in agents]
@@ -155,6 +163,7 @@ def build_benchmark_run_config(
             env=x.spec.env,
             make_target_mapping=x.spec.make_target_mapping,
             enable_evaluation_wait=x.spec.enable_evaluation_wait,
+            use_input_file=False,
         )
         for x in bundles
     ]
@@ -170,6 +179,7 @@ def build_benchmark_run_config(
         host=host,
         port=port,
         token=token,
+        interval=interval,
     )
     return bench_run_config
 

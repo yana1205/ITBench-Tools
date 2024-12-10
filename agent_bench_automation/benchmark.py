@@ -131,24 +131,27 @@ class Benchmark:
                 shared_workspace.mkdir(parents=True, exist_ok=True)
                 br = BundleRequest(shared_workspace=shared_workspace.as_posix())
 
-                default_input = None
-                input_file = bundle.get_path() / "input.json"
-                if input_file.exists():
-                    with input_file.open("r") as f:
-                        default_input = json.load(f)
-                input = (
-                    merge_dicts_recursively(default_input, bundle.input) if default_input and bundle.input else default_input or bundle.input or None
-                )
-                if input:
-                    input["shared_workspace"] = shared_workspace.as_posix()
-                    updated_input_file = shared_workspace / ".input.json"
-                    updated_input_file.parent.mkdir(parents=True, exist_ok=True)
-                    with updated_input_file.open("w") as f:
-                        json.dump(input, f, indent=2)
-                    br.input_file = updated_input_file.as_posix()
-                    dump = output_dir / agent.name / bundle.name / "input.json"
-                    dump.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copy(updated_input_file, dump)
+                if bundle.use_input_file:
+                    default_input = None
+                    input_file = bundle.get_path() / "input.json"
+                    if input_file.exists():
+                        with input_file.open("r") as f:
+                            default_input = json.load(f)
+                    input = (
+                        merge_dicts_recursively(default_input, bundle.input)
+                        if default_input and bundle.input
+                        else default_input or bundle.input or None
+                    )
+                    if input:
+                        input["shared_workspace"] = shared_workspace.as_posix()
+                        updated_input_file = shared_workspace / ".input.json"
+                        updated_input_file.parent.mkdir(parents=True, exist_ok=True)
+                        with updated_input_file.open("w") as f:
+                            json.dump(input, f, indent=2)
+                        br.input_file = updated_input_file.as_posix()
+                        dump = output_dir / agent.name / bundle.name / "input.json"
+                        dump.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copy(updated_input_file, dump)
 
                 if self.get_logger():
                     bo = BundleOperator(bundle, br, bench_config.is_test, _logger=self.get_logger())
@@ -226,6 +229,10 @@ class Benchmark:
             resolved = False
 
             if agent_result.success:
+                try:
+                    bench_client.download_agent_pushed_file(bundle, f"{bo.bundle_request.shared_workspace}/agent_output.data")
+                except Exception as e:
+                    logger.error(e)
                 bench_client.push_bundle_status(bundle_id, BundlePhaseEnum.Evaluating)
                 # Save the agent output in the shared workspace for sre-bundle evaluation
                 if bundle.incident_type == "SRE":
@@ -234,7 +241,7 @@ class Benchmark:
                         json.dump(json.loads(agent_output), f)
                 # TODO: Address time lag on the incident report to be up to date
                 if bo.bundle.enable_evaluation_wait:
-                    bo.wait_for_violation_resolved(timeout=bench_config.resolution_wait)
+                    bo.wait_for_violation_resolved(timeout=bench_config.resolution_wait, interval=bo.bundle.polling_interval)
                 evaluation = bo.evaluate()
                 resolved = evaluation.pass_
                 bench_client.push_bundle_status(bundle_id, BundlePhaseEnum.Evaluated)
@@ -252,6 +259,10 @@ class Benchmark:
 
             bench_client.push_bundle_status(bundle_id, BundlePhaseEnum.Terminated)
 
+            agent_result = self.wait_for_agent_to_move_next(bench_client, ao.agent_info.id, timeout=bundle.bundle_ready_timeout)
+            if not agent_result.success:
+                bundle_result.errored = True
+                bundle_result.message = "Agent status did not change Finished to Ready."
             bundle_results.append(bundle_result)
         except BundleError as e:
             bundle_results.append(self.build_error_result(agent, bundle, e.message))
@@ -327,6 +338,25 @@ class Benchmark:
             elapsed_time += interval
 
         message = "Timeout reached. The operation is still pending."
+        logger.error(message)
+        return WaitAgentResult(success=False, message=message)
+
+    def wait_for_agent_to_move_next(self, bench_client: BenchClient, agent_id: str, timeout=300, interval=10) -> 'WaitAgentResult':
+        logger = self.get_logger()
+        elapsed_time = 0
+
+        while elapsed_time < timeout:
+            res = bench_client.get_agent_status(agent_id)
+            phase = res.status.phase
+
+            if phase == AgentPhaseEnum.Ready:
+                logger.info("Agent is ready")
+                return WaitAgentResult(success=True)
+
+            time.sleep(interval)
+            elapsed_time += interval
+
+        message = "Timeout reached. The Agent could not be ready within the timeout."
         logger.error(message)
         return WaitAgentResult(success=False, message=message)
 

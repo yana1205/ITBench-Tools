@@ -98,7 +98,7 @@ class BundleOperator:
         self.invoke_bundle(mk.target)
 
         wait_phase_name = "FaultInjected" if self.make_targets.inject_fault.unused else "Deployed"
-        if not self.wait_bundle(wait_phase_name):
+        if not self.wait_bundle(wait_phase_name, interval=self.bundle.polling_interval, timeout=self.bundle.bundle_ready_timeout):
             raise BundleError("Deployment Failed", "deploy", mk.target)
 
     def inject_fault(self):
@@ -109,7 +109,7 @@ class BundleOperator:
             return
         logger.info(f"Inject compliance violation for '{self.bundle.name}'...")
         self.invoke_bundle(mk.target)
-        if not self.wait_bundle("FaultInjected"):
+        if not self.wait_bundle("FaultInjected", interval=self.bundle.polling_interval, timeout=self.bundle.bundle_ready_timeout):
             raise BundleError("FaultInjection Failed", "FaultInjected", mk.target)
 
     def delete_bundle(self, soft_delete=False):
@@ -129,8 +129,8 @@ class BundleOperator:
             if mk.unused:
                 return
             self.invoke_bundle(mk.target, max_retry=1)
-            if not self.wait_bundle(phase, status=status):
-                raise BundleError("Failed to delete", "FaultInjected", self.bo.bundle.make_target_mapping.revert.target)
+            if not self.wait_bundle(phase, status=status, interval=self.bundle.polling_interval, timeout=self.bundle.bundle_ready_timeout):
+                raise BundleError("Failed to delete", "FaultInjected", self.bundle.make_target_mapping.revert.target)
         except BundleError as e:
             raise e
         except Exception as e:
@@ -198,7 +198,9 @@ class BundleOperator:
         except Exception as e:
             logger.error(f"An exception occurred: {e}")
 
-    def wait_bundle(self, type, status="True", interval=DEFAULT_WAIT_INTERVAL, timeout=DEFAULT_WAIT_TIMEOUT) -> bool:
+    def wait_bundle(self, type, status="True", interval: Optional[int] = None, timeout: Optional[int] = None) -> bool:
+        interval = interval if interval else DEFAULT_WAIT_INTERVAL
+        timeout = timeout if timeout else DEFAULT_WAIT_TIMEOUT
         logger = self.logger
 
         bundle_name = self.bundle.name
@@ -225,7 +227,9 @@ class BundleOperator:
         logger.error(f"Timed out for {bundle_name}.")
         return False
 
-    def wait_for_violation_resolved(self, interval=DEFAULT_WAIT_INTERVAL, timeout=DEFAULT_WAIT_TIMEOUT) -> bool:
+    def wait_for_violation_resolved(self, interval: Optional[int] = None, timeout: Optional[int] = None) -> bool:
+        interval = interval if interval else DEFAULT_WAIT_INTERVAL
+        timeout = timeout if timeout else DEFAULT_WAIT_TIMEOUT
         logger = self.logger
 
         def callback(result):
@@ -236,7 +240,9 @@ class BundleOperator:
 
         return self.wait_for_violation(callback, interval=interval, timeout=timeout)
 
-    def wait_for_violation(self, callback, interval=DEFAULT_WAIT_INTERVAL, timeout=DEFAULT_WAIT_TIMEOUT) -> bool:
+    def wait_for_violation(self, callback, interval: Optional[int] = None, timeout: Optional[int] = None) -> bool:
+        interval = interval if interval else DEFAULT_WAIT_INTERVAL
+        timeout = timeout if timeout else DEFAULT_WAIT_TIMEOUT
         logger = self.logger
 
         bundle_name = self.bundle.name

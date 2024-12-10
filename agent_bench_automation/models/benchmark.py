@@ -37,9 +37,10 @@ class BenchRunConfig(BaseModel):
     agents: List[AgentInfo]
     bundles: List[Bundle]
     output_dir: str
-    token: Optional[str]
-    host: Optional[str]
-    port: Optional[int]
+    token: Optional[str] = None
+    host: Optional[str] = None
+    port: Optional[int] = None
+    interval: Optional[int] = None
 
 
 class BenchmarkResult(BaseModel):

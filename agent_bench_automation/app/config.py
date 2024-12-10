@@ -56,3 +56,4 @@ class AppConfig(BaseModel):
     enable_soft_delete: Optional[bool] = Field(False, description="Specifies whether to enable soft-delete (invoke Make revert).")
     token: Optional[str] = None
     default_agent_types: Optional[List[AgentTypeDefinition]] = Field([], description="Default Agent Type Definitions")
+    polling_interval: Optional[int] = Field(None, description="Seconds for polling interval.")
