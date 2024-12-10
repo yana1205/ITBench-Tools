@@ -20,17 +20,16 @@ from typing import List, Optional
 import yaml
 
 import agent_bench_automation.benchmark
-from agent_bench_automation.app.config import (
-    BENCHMARK_RESOURCE_ROOT,
-    ROOT_BENCHMARK_LABEL,
-    AppConfig,
-)
-from agent_bench_automation.app.models.agent import Agent
+from agent_bench_automation.app.config import SERVICE_API_KEY, AppConfig
 from agent_bench_automation.app.models.agent import Agent as AgentInApp
+from agent_bench_automation.app.models.agent import AgentManifest
 from agent_bench_automation.app.models.base import BenchmarkPhaseEnum
-from agent_bench_automation.app.models.benchmark import Benchmark
+from agent_bench_automation.app.models.benchmark import (
+    Benchmark,
+    BenchmarkJob,
+    BenchmarkJobTake,
+)
 from agent_bench_automation.app.models.bundle import Bundle as BundleInApp
-from agent_bench_automation.app.storage.factory import StorageFactory, StorageInterface
 from agent_bench_automation.app.utils import create_status, get_tempdir
 from agent_bench_automation.common.rest_client import RestClient
 from agent_bench_automation.models.agent import AgentInfo
@@ -45,60 +44,56 @@ class BenchmarkRunner:
         self,
         app_config: AppConfig,
         runner_id: str,
+        service_type: str,
     ) -> None:
         self.app_config = app_config
-        sf = StorageFactory(storage_config=self.app_config.storage_config)
-        self.bm_storage: StorageInterface[Benchmark] = sf.get_storage(Benchmark, resource_type="benchmarks")
-        self.agent_storage: StorageInterface[Agent] = sf.get_storage(Agent, resource_type="agents")
         self.runner_id = runner_id
         self.host = app_config.host
         self.port = app_config.port
         self.max_concurrent_tasks = 1
         self.running_tasks = 0
         self.interval = 10
+        self.service_type = service_type
 
     async def run(self):
 
+        service_accounts = [x for x in self.app_config.service_accounts if x.type == self.service_type]
+        if len(service_accounts) == 0:
+            raise Exception("Please specify correct service type")
+        service_account = service_accounts[0]
+        client = RestClient(self.host, self.port)
+        client.login(service_account.id, SERVICE_API_KEY)
+
         while True:
-            logger.info("Fetch benchmark entries...")
             if self.running_tasks < self.max_concurrent_tasks:
-                benchmarks: List[Benchmark] = self.bm_storage.get_all(BENCHMARK_RESOURCE_ROOT)
-                benchmarks = [x for x in benchmarks if not (x.metadata.labels and x.metadata.labels[ROOT_BENCHMARK_LABEL] == "true")]
-                if len(benchmarks) == 0:
-                    logger.info("There is no benchmark entries...")
-                for benchmark in benchmarks:
-                    if (
-                        not benchmark.spec.runner_id
-                        and benchmark.status
-                        and not benchmark.status.phase in [BenchmarkPhaseEnum.Error, BenchmarkPhaseEnum.Finished]
-                    ):
-                        logger.info(f"Find a benchmark job '{benchmark.metadata.id}'")
-                        benchmark.spec.runner_id = self.runner_id
-                        agents = self.agent_storage.get_all(benchmark.metadata.id)
-                        if len(agents) == 0:
-                            logger.info(f"No agents are registered for benchmark '{benchmark.metadata.id}'. Skip this benchmark entry.")
-                            continue
-                        self.bm_storage.update(BENCHMARK_RESOURCE_ROOT, benchmark.metadata.id, benchmark)
-                        if self.running_tasks < self.max_concurrent_tasks:
-                            asyncio.create_task(self.run_benchmark(benchmark, agents[0]))
-                        else:
-                            logger.info("The number of current task is over max concurrent jobs. Wait for the runner to be available.")
+                logger.info("Fetch benchmark jobs...")
+                response = client.get("/benchmarks/queue/list_benchmark_jobs")
+                data = response.json()
+                jobs = [BenchmarkJob.model_validate(x) for x in data]
+                if len(jobs) == 0:
+                    logger.info(f"There are no benchmark jobs. Wait for '{self.interval}s' the next poll..")
+                for job in jobs:
+                    benchmark_id = job.benchmark.metadata.id
+                    body = BenchmarkJobTake(runner_id=self.runner_id)
+                    response = client.put(f"/benchmarks/{benchmark_id}/take_benchmark_job", body=body.model_dump_json())
+                    data = response.json()
+                    if data["success"] == True:
+                        logger.info(f"Benchmark job '{benchmark_id}' is successfully taken. Start benchmark...")
+                        self.running_tasks += 1
+                        asyncio.create_task(self.run_benchmark(job.benchmark, job.agent_manifest))
                     else:
-                        logger.info("There is no runner assigned benchmark entries...")
+                        logger.info(f"Benchmark job '{benchmark_id}' is not successfully assigned.")
             else:
                 logger.info("The number of current task is over max concurrent jobs. Wait for the runner to be available.")
             await asyncio.sleep(self.interval)
 
-    async def run_benchmark(self, benchmark: Benchmark, agent: Agent):
+    async def run_benchmark(self, benchmark: Benchmark, agent_manifest: AgentManifest):
+        benchmark_id = benchmark.metadata.id
+        token = agent_manifest.token
+        headers = {"Authorization": f"Bearer {token}"}
+        client = RestClient(self.host, self.port, headers=headers)
+        base_endpoint = f"/benchmarks/{benchmark_id}"
         try:
-            self.running_tasks += 1
-
-            benchmark_id = benchmark.metadata.id
-            token = agent.spec.agent_manifest.token
-            headers = {"Authorization": f"Bearer {token}"}
-            client = RestClient(self.host, self.port, headers=headers)
-            base_endpoint = f"/benchmarks/{benchmark_id}"
-
             response = client.get(f"{base_endpoint}/bundles")
             _bundles = [BundleInApp.model_validate(x) for x in response.json()]
 
@@ -122,20 +117,30 @@ class BenchmarkRunner:
 
             benchmark.status = create_status(phase=BenchmarkPhaseEnum.Running)
             benchmark.spec.log_file_path = logfilepath
-            self.bm_storage.update(BENCHMARK_RESOURCE_ROOT, benchmark_id, benchmark)
+            client.put(f"{base_endpoint}/update_benchmark_job", benchmark.model_dump_json())
             benchmark_runner.run_benchmark(bench_run_config)
 
             benchmark.status = create_status(phase=BenchmarkPhaseEnum.Finished)
-            self.bm_storage.update(BENCHMARK_RESOURCE_ROOT, benchmark_id, benchmark)
+            client.put(f"{base_endpoint}/update_benchmark_job", benchmark.model_dump_json())
             logger.info("Benchmarking is finished")
             self.running_tasks -= 1
         except Exception as e:
-            benchmark.spec.runner_id = None
+            message = f"Error while running benchmark '{benchmark.metadata.id}': {e}"
+            logger.error(message)
             self.running_tasks -= 1
-            benchmark.status = create_status(phase=BenchmarkPhaseEnum.Error)
-            self.bm_storage.update(BENCHMARK_RESOURCE_ROOT, benchmark.metadata.id, benchmark)
-            error_message = f"Error while running benchmark '{benchmark.metadata.id}', agent {agent.spec.name}: {e}"
-            logger.error(error_message)
+            benchmark.status = create_status(phase=BenchmarkPhaseEnum.Error, message=message)
+            try:
+                response = client.put(f"/benchmarks/{benchmark_id}/release_benchmark_job")
+                if not response.json()["success"]:
+                    raise Exception(f"{response.text}")
+            except Exception as e:
+                message = f"Failed to release job of benchmark id '{benchmark.metadata.id}': {e}"
+                logger.error(message)
+                benchmark.status.message = benchmark.status.message + "\n" + message
+            try:
+                client.put(f"{base_endpoint}/update_benchmark_job", benchmark.model_dump_json())
+            except Exception as e:
+                logger.error(f"Failed to update status of benchmark id '{benchmark.metadata.id}': {e}")
 
 
 def build_benchmark_run_config(
@@ -216,5 +221,5 @@ def run(args):
     with Path(config_path).open("r") as f:
         data = yaml.safe_load(f)
         app_config = AppConfig.model_validate(data)
-    runner = BenchmarkRunner(app_config, args.runner_id)
+    runner = BenchmarkRunner(app_config, args.runner_id, args.service_type)
     asyncio.run(runner.run())

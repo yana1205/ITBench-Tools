@@ -17,6 +17,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 
+from agent_bench_automation.app.models.agent import AgentManifest
 from agent_bench_automation.app.models.base import Metadata, Status
 from agent_bench_automation.app.models.scenario import Scenario
 
@@ -62,3 +63,8 @@ class BenchmarkStatus(BaseModel):
 
 class BenchmarkJobTake(BaseModel):
     runner_id: str
+
+
+class BenchmarkJob(BaseModel):
+    benchmark: Benchmark
+    agent_manifest: Optional[AgentManifest] = None

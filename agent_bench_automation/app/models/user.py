@@ -24,12 +24,14 @@ from agent_bench_automation.app.models.base import Metadata, Status
 class UserTypeEnum(str, Enum):
     User = "user"
     Agent = "agent"
+    Service = "service"
 
 
 class UserSpec(BaseModel):
     username: str
     hashed_password: str
     user_type: UserTypeEnum
+    service_type: Optional[str] = None
     delegated_to: Optional[str] = ""
 
 
@@ -55,4 +57,5 @@ class TokenPayload(BaseModel):
     name: str
     user_type: UserTypeEnum
     delegated_id: Optional[str] = None
+    service_type: Optional[str] = None
     exp: Optional[datetime] = None

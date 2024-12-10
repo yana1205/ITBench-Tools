@@ -20,9 +20,11 @@ from pydantic import BaseModel, Field
 
 
 class BenchmarkPhaseEnum(str, Enum):
+    NotRegistered = "NotRegistered"
     NotStarted = "NotStarted"
     Running = "Running"
     Finished = "Finished"
+    Queued = "Queued"
     Error = "Error"
 
 

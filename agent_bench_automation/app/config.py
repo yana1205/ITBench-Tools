@@ -36,6 +36,7 @@ BASE_RESOURCE_REF_LABEL = "reference_id"
 ROOT_BENCHMARK_LABEL = "root"
 BENCHMARK_RESOURCE_ROOT = "_system"
 ROOT_PATH = os.getenv("ROOT_PATH", "")
+SERVICE_API_KEY = os.getenv("SERVICE_API_KEY", "")
 
 
 class DefaultBundle(BaseModel):
@@ -45,6 +46,11 @@ class DefaultBundle(BaseModel):
         None,
         description="List of bundles. If this field is defined, it takes precedence over the 'path' field, and the specified bundles will be used directly.",
     )
+
+
+class ServiceAccount(BaseModel):
+    id: str
+    type: str
 
 
 class AppConfig(BaseModel):
@@ -57,3 +63,4 @@ class AppConfig(BaseModel):
     token: Optional[str] = None
     default_agent_types: Optional[List[AgentTypeDefinition]] = Field([], description="Default Agent Type Definitions")
     polling_interval: Optional[int] = Field(None, description="Seconds for polling interval.")
+    service_accounts: Optional[List[ServiceAccount]] = None

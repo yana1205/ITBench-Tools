@@ -61,6 +61,7 @@ class DataForAgentRegistration(BaseModel):
 class CreateBenchmarkRequest(BaseModel):
     name: str
     agent_id: str
+    immediate: Optional[bool] = False
 
 
 class BenchmarkInfo(BaseModel):

@@ -44,7 +44,7 @@ class RestClient:
         response = requests.put(url, headers=self.headers, json={"agent_id": agent_id, "bundle_id": bundle_id})
         return response
 
-    def put(self, endpoint: str, body, params: Optional[Dict[str, Any]] = None) -> requests.Response:
+    def put(self, endpoint: str, body=None, params: Optional[Dict[str, Any]] = None) -> requests.Response:
         _endpoint = endpoint.lstrip("/")
         url = f"{self.base_url}/{_endpoint}"
         response = requests.put(
@@ -77,3 +77,9 @@ class RestClient:
             url = f"{self.base_url}/benchmarks/{benchmark_id}/file"
             response = requests.post(url, headers={"Authorization": self.headers["Authorization"]}, files=files)
             response.raise_for_status()
+
+    def login(self, username, password):
+        url = f"{self.base_url}/token"
+        response = requests.post(url, data={"username": username, "password": password})
+        token = response.json()["access_token"]
+        self.headers["Authorization"] = f"Bearer {token}"
