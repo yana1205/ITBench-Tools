@@ -18,6 +18,7 @@ import time
 from requests.exceptions import ConnectionError
 
 from agent_bench_automation.bench_runner.taker import run as mini_bench_run
+
 # TODO: fix circular import of `app.runner`
 # from agent_bench_automation.app.runner import run as bench_run
 from agent_bench_automation.app.config import DEFAULT_HOST, DEFAULT_PORT, DEFAULT_MINIBENCH_HOST, DEFAULT_MINIBENCH_PORT
@@ -42,6 +43,22 @@ def main():
     parser.add_argument(
         "--remote_port", type=int, default=DEFAULT_PORT, help=f"The port number to remote Benchmark Server (default: {DEFAULT_PORT})."
     )
+    parser.add_argument(
+        "--remote_root_path",
+        type=str,
+        default="",
+        help=f"The root path of the application on the server. For example, '--remote_root_path=/myapp' results in 'http://<host>:<port>/myapp' (default: ''.)",
+    )
+    parser.add_argument(
+        "--remote_ssl",
+        action="store_true",
+        help=f"Enable SSL for remote connections. If specified, SSL is enabled; otherwise, it is disabled (default: False).",
+    )
+    parser.add_argument(
+        "--remote_ssl_verify",
+        action="store_true",
+        help=f"Verify the SSL certificate for remote connections. If specified, the certificate will be verified; otherwise, verification is disabled (default: disabled).",
+    )
     parser.add_argument("--remote_token", type=str, help=f"Bearer token of Benchmark Server.")
     parser.add_argument(
         "--minibench_host",
@@ -54,6 +71,22 @@ def main():
         type=int,
         default=DEFAULT_MINIBENCH_PORT,
         help=f"The port number to remote Mini Benchmark Server (default: {DEFAULT_MINIBENCH_PORT}).",
+    )
+    parser.add_argument(
+        "--minibench_root_path",
+        type=str,
+        default="",
+        help=f"The root path of the application on the server. For example, '--minibench_root_path=/myapp' results in 'http://<host>:<port>/myapp' (default: ''.)",
+    )
+    parser.add_argument(
+        "--minibench_ssl",
+        action="store_true",
+        help=f"Enable SSL for connections to Mini Benchmark. If specified, SSL is enabled; otherwise, it is disabled (default: False).",
+    )
+    parser.add_argument(
+        "--minibench_ssl_verify",
+        action="store_true",
+        help=f"Verify the SSL certificate for connections to Mini Benchmark. If specified, the certificate will be verified; otherwise, verification is disabled (default: disabled).",
     )
 
     args = parser.parse_args()

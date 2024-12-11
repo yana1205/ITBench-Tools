@@ -54,6 +54,9 @@ class AgentHarness:
         agent_directory: str,
         host: str,
         port: int,
+        root_path: Optional[str] = "",
+        ssl: Optional[bool] = False,
+        ssl_verify: Optional[bool] = False,
         config: Optional[AgentHarnessConfig] = None,
         single_run=False,
         interval=5,
@@ -65,7 +68,14 @@ class AgentHarness:
         self.config = config
         self.single_run = single_run
         self.interval = interval
-        self.rest_client = RestClient(self.host, self.port, headers={"Authorization": f"Bearer {self.agent_manifest.token}"})
+        self.rest_client = RestClient(
+            self.host,
+            self.port,
+            headers={"Authorization": f"Bearer {self.agent_manifest.token}"},
+            ssl=ssl,
+            verify=ssl_verify,
+            root_path=root_path,
+        )
         self.stop_event = asyncio.Event()
         self.task_history = []
 
@@ -224,5 +234,14 @@ def run(args):
             data = yaml.safe_load(f.read())
             config = AgentHarnessConfig.model_validate(data)
 
-    agent_harness = AgentHarness(agent_manifest, args.agent_directory, args.host, args.port, config=config)
+    agent_harness = AgentHarness(
+        agent_manifest,
+        args.agent_directory,
+        args.host,
+        args.port,
+        ssl=args.ssl,
+        ssl_verify=args.ssl_verify,
+        root_path=args.root_path,
+        config=config,
+    )
     asyncio.run(agent_harness.run())

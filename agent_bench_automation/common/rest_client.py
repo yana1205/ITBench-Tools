@@ -16,35 +16,49 @@ import logging
 from typing import Any, Dict, Optional
 
 import requests
+import urllib3
+from urllib3.exceptions import InsecureRequestWarning
 
 from agent_bench_automation.app.models.base import AgentPhaseEnum
 from agent_bench_automation.app.utils import create_status
+
+urllib3.disable_warnings(InsecureRequestWarning)
 
 logger = logging.getLogger(__name__)
 
 
 class RestClient:
-    def __init__(self, host: str, port: int, headers: Optional[Dict[str, str]] = None):
-        self.base_url = f"http://{host}:{port}" if port > 0 else f"http://{host}"
+    def __init__(
+        self,
+        host: str,
+        port: int,
+        headers: Optional[Dict[str, str]] = None,
+        ssl: Optional[bool] = False,
+        verify: Optional[bool] = False,
+        root_path: Optional[str] = "",
+    ):
+        protocol = "https" if ssl else "http"
+        self.base_url = f"{protocol}://{host}:{port}{root_path}" if port > 0 else f"{protocol}://{host}{root_path}"
         self.headers = headers
         if self.headers:
             self.headers["Content-type"] = "application/json"
         else:
             self.headers = {"Content-type": "application/json"}
+        self.verify = verify if verify else False
 
     def get(self, endpoint: str, params: Optional[Dict[str, Any]] = None) -> requests.Response:
         _endpoint = endpoint.lstrip("/")
         url = f"{self.base_url}/{_endpoint}"
-        response = requests.get(url, headers=self.headers, params=params)
+        response = requests.get(url, headers=self.headers, params=params, verify=self.verify)
         response.raise_for_status()
         return response
 
     def assign(self, benchmark_id: str, agent_id: str, bundle_id: str) -> requests.Response:
         url = f"{self.base_url}/benchmarks/{benchmark_id}/assign_agent"
-        response = requests.put(url, headers=self.headers, json={"agent_id": agent_id, "bundle_id": bundle_id})
+        response = requests.put(url, headers=self.headers, json={"agent_id": agent_id, "bundle_id": bundle_id}, verify=self.verify)
         return response
 
-    def put(self, endpoint: str, body=None, params: Optional[Dict[str, Any]] = None) -> requests.Response:
+    def put(self, endpoint: str, body = None, params: Optional[Dict[str, Any]] = None) -> requests.Response:
         _endpoint = endpoint.lstrip("/")
         url = f"{self.base_url}/{_endpoint}"
         response = requests.put(
@@ -52,10 +66,11 @@ class RestClient:
             headers=self.headers,
             data=body,
             params=params,
+            verify=self.verify,
         )
         return response
 
-    def post(self, endpoint: str, body, params: Optional[Dict[str, Any]] = None) -> requests.Response:
+    def post(self, endpoint: str, body = None, params: Optional[Dict[str, Any]] = None) -> requests.Response:
         _endpoint = endpoint.lstrip("/")
         url = f"{self.base_url}/{_endpoint}"
         response = requests.post(
@@ -63,23 +78,24 @@ class RestClient:
             headers=self.headers,
             data=body,
             params=params,
+            verify=self.verify,
         )
         return response
 
     def push_agent_status(self, benchmark_id: str, agent_id: str, phase: AgentPhaseEnum, message: Optional[str] = None):
         url = f"{self.base_url}/benchmarks/{benchmark_id}/agents/{agent_id}/status"
         status = create_status(phase.value, message)
-        requests.put(url, headers=self.headers, data=status.model_dump_json())
+        requests.put(url, headers=self.headers, data=status.model_dump_json(), verify=self.verify)
 
     def upload_file(self, benchmark_id: str, file_path: str, new_file_name: str):
         with open(file_path, "rb") as file:
             files = {"file": (new_file_name, file)}
             url = f"{self.base_url}/benchmarks/{benchmark_id}/file"
-            response = requests.post(url, headers={"Authorization": self.headers["Authorization"]}, files=files)
+            response = requests.post(url, headers={"Authorization": self.headers["Authorization"]}, files=files, verify=self.verify)
             response.raise_for_status()
 
     def login(self, username, password):
         url = f"{self.base_url}/token"
-        response = requests.post(url, data={"username": username, "password": password})
+        response = requests.post(url, data={"username": username, "password": password}, verify=self.verify)
         token = response.json()["access_token"]
         self.headers["Authorization"] = f"Bearer {token}"

@@ -30,9 +30,23 @@ def main():
     # caa agent harness
     parser.add_argument("--host", type=str, default=DEFAULT_MINIBENCH_HOST, help=f"The hostname or IP address (default: {DEFAULT_MINIBENCH_HOST}).")
     parser.add_argument("--port", type=int, default=-1, help=f"The port number (Set -1 if you don't use port number).")
+    parser.add_argument(
+        "--root_path",
+        type=str,
+        default="",
+        help="The root path of the application on the server. This is useful for servers hosting multiple applications. "
+        "For example, if your application is hosted at 'http://<host>:<port>/myapp', set '--root_path=/myapp'. "
+        "Leave empty ('') for the default root path (default: '').",
+    )
     parser.add_argument("-ad", "--agent_directory", type=str, default="caa-agent", help=f"Path to root directory of Agent project")
     parser.add_argument("-i", "--input", type=str, help="Path to MiniBenchResult", required=True)
     parser.add_argument("-c", "--config", type=str, help="Path to Agent Harness Config file")
+    parser.add_argument("--ssl", action="store_true", help=f"If specified, SSL is enabled; otherwise, it is disabled (default: False).")
+    parser.add_argument(
+        "--ssl_verify",
+        action="store_true",
+        help=f"If specified, the certificate will be verified; otherwise, verification is disabled (default: disabled).",
+    )
 
     args = parser.parse_args()
 

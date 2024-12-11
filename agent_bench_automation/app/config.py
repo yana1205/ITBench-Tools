@@ -36,8 +36,10 @@ TOKEN_EXPIRATION_MINUTES = 60
 BASE_RESOURCE_REF_LABEL = "reference_id"
 ROOT_BENCHMARK_LABEL = "root"
 BENCHMARK_RESOURCE_ROOT = "_system"
+
 ROOT_PATH = os.getenv("ROOT_PATH", "")
 SERVICE_API_KEY = os.getenv("SERVICE_API_KEY", "")
+GLOBAL_RESOURCE_ROOT_ID = os.getenv("GLOBAL_RESOURCE_ROOT_ID", "00000000-0000-0000-0000-000000000000")
 
 
 class DefaultBundle(BaseModel):
@@ -65,3 +67,23 @@ class AppConfig(BaseModel):
     default_agent_types: Optional[List[AgentTypeDefinition]] = Field([], description="Default Agent Type Definitions")
     polling_interval: Optional[int] = Field(None, description="Seconds for polling interval.")
     service_accounts: Optional[List[ServiceAccount]] = None
+    ssl_enabled: Optional[bool] = Field(False, description="Enable or disable SSL. Set to True to enable SSL for the server.")
+    ssl_verify: Optional[bool] = Field(False, description="Enable or disable SSL certificate verification. Set to True to verify the certificate, or False to disable verification (default: False).")
+    ssl_auto_gen: Optional[bool] = Field(
+        False,
+        description="Enable automatic generation of a self-signed SSL certificate. If True, a certificate will be generated dynamically.",
+    )
+    ssl_auto_gen_dir: Optional[str] = Field(
+        None,
+        description="Directory path to save the automatically generated SSL certificate and key. Required if `ssl_auto_cert_gen` is True.",
+    )
+    ssl_auto_gen_common_name: Optional[str] = Field(
+        "localhost",
+        description="Common Name (CN) for the generated SSL certificate. Used as the hostname in the certificate. If not specified, defaults to 'localhost'.",
+    )
+    ssl_cert_file: Optional[str] = Field(
+        None, description="Path to the SSL certificate file. Required if SSL is enabled and not using auto-generated certificates."
+    )
+    ssl_key_file: Optional[str] = Field(
+        None, description="Path to the SSL key file. Required if SSL is enabled and not using auto-generated certificates."
+    )

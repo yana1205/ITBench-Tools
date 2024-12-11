@@ -16,7 +16,6 @@ import json
 import logging
 import shutil
 import time
-import json
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -30,9 +29,19 @@ from agent_bench_automation.agent_operator import AgentOperator
 from agent_bench_automation.app.models.base import AgentPhaseEnum, BundlePhaseEnum
 from agent_bench_automation.bench_client import BenchClient
 from agent_bench_automation.bundle_operator import BundleError, BundleOperator
+from agent_bench_automation.common.rest_client import RestClient
 from agent_bench_automation.models.agent import AgentInfo
-from agent_bench_automation.models.benchmark import BenchConfig, BenchmarkResult, BenchRunConfig
-from agent_bench_automation.models.bundle import Bundle, BundleInfo, BundleRequest, BundleResult
+from agent_bench_automation.models.benchmark import (
+    BenchConfig,
+    BenchmarkResult,
+    BenchRunConfig,
+)
+from agent_bench_automation.models.bundle import (
+    Bundle,
+    BundleInfo,
+    BundleRequest,
+    BundleResult,
+)
 
 logger = logging.getLogger(__name__)
 log_format = "[%(asctime)s %(levelname)s %(name)s] %(message)s"
@@ -68,13 +77,13 @@ class Benchmark:
         bench_run_config = BenchRunConfig(benchmark_id=str(uuid4()), config=bench_config, agents=agents, bundles=bundles, output_dir=args.out)
         self.run_benchmark(bench_run_config)
 
-    def run_benchmark(self, bench_run_config: BenchRunConfig, user_id: Optional[str] = None):
+    def run_benchmark(self, bench_run_config: BenchRunConfig, rest_client: Optional[RestClient] = None, user_id: Optional[str] = None):
         output_dir = Path(bench_run_config.output_dir)
 
-        benchmark_results = self.benchmark(bench_run_config, user_id=user_id)
+        benchmark_results = self.benchmark(bench_run_config, rest_client, user_id=user_id)
         write_for_leaderboard(benchmark_results, output_dir)
 
-    def benchmark(self, bench_run_config: BenchRunConfig, user_id: Optional[str] = None) -> List[BenchmarkResult]:
+    def benchmark(self, bench_run_config: BenchRunConfig, rest_client: Optional[RestClient] = None, user_id: Optional[str] = None) -> List[BenchmarkResult]:
         logger = self.get_logger()
         agents = bench_run_config.agents
         bundles = bench_run_config.bundles
@@ -93,7 +102,7 @@ class Benchmark:
             bundle_results: List[BundleResult] = []
             for bo in bos:
                 logger.info(f" Run scenario '{bo.bundle.name}'", extra={"agent": ao.agent_info.name})
-                bench_client = BenchClient(bench_run_config=bench_run_config, user_id=user_id)
+                bench_client = BenchClient(bench_run_config=bench_run_config, rest_client=rest_client, user_id=user_id)
                 brs = self.benchmark_per_bundle(ao, bo, bench_client, output_dir_per_agent, bench_run_config)
                 bench_client.upload_bundle_results(bo.bundle, brs)
 

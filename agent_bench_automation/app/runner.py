@@ -50,10 +50,13 @@ class BenchmarkRunner:
         self.runner_id = runner_id
         self.host = app_config.host
         self.port = app_config.port
+        self.ssl = app_config.ssl_enabled
+        self.ssl_verify = app_config.ssl_verify
         self.max_concurrent_tasks = 1
         self.running_tasks = 0
         self.interval = 10
         self.service_type = service_type
+        self.service_client: RestClient
 
     async def run(self):
 
@@ -61,13 +64,14 @@ class BenchmarkRunner:
         if len(service_accounts) == 0:
             raise Exception("Please specify correct service type")
         service_account = service_accounts[0]
-        client = RestClient(self.host, self.port)
-        client.login(service_account.id, SERVICE_API_KEY)
+        self.service_client = RestClient(self.host, self.port, ssl=self.ssl, verify=self.ssl_verify)
+        self.service_client.login(service_account.id, SERVICE_API_KEY)
 
         while True:
             if self.running_tasks < self.max_concurrent_tasks:
                 logger.info("Fetch benchmark jobs...")
-                response = client.get("/benchmarks/queue/list_benchmark_jobs")
+                self.service_client.login(service_account.id, SERVICE_API_KEY)
+                response = self.service_client.get("/benchmarks/queue/list_benchmark_jobs")
                 data = response.json()
                 jobs = [BenchmarkJob.model_validate(x) for x in data]
                 if len(jobs) == 0:
@@ -75,7 +79,7 @@ class BenchmarkRunner:
                 for job in jobs:
                     benchmark_id = job.benchmark.metadata.id
                     body = BenchmarkJobTake(runner_id=self.runner_id)
-                    response = client.put(f"/benchmarks/{benchmark_id}/take_benchmark_job", body=body.model_dump_json())
+                    response = self.service_client.put(f"/benchmarks/{benchmark_id}/take_benchmark_job", body=body.model_dump_json())
                     data = response.json()
                     if data["success"] == True:
                         logger.info(f"Benchmark job '{benchmark_id}' is successfully taken. Start benchmark...")
@@ -91,7 +95,7 @@ class BenchmarkRunner:
         benchmark_id = benchmark.metadata.id
         token = agent_manifest.token
         headers = {"Authorization": f"Bearer {token}"}
-        client = RestClient(self.host, self.port, headers=headers)
+        client = RestClient(self.host, self.port, headers=headers, ssl=self.ssl, verify=self.ssl_verify)
         base_endpoint = f"/benchmarks/{benchmark_id}"
         try:
             response = client.get(f"{base_endpoint}/bundles")
@@ -105,9 +109,6 @@ class BenchmarkRunner:
                 _agents,
                 _bundles,
                 self.app_config.enable_soft_delete,
-                self.host,
-                self.port,
-                token,
                 self.interval,
             )
 
@@ -118,7 +119,7 @@ class BenchmarkRunner:
             benchmark.status = create_status(phase=BenchmarkPhaseEnum.Running)
             benchmark.spec.log_file_path = logfilepath
             client.put(f"{base_endpoint}/update_benchmark_job", benchmark.model_dump_json())
-            benchmark_runner.run_benchmark(bench_run_config)
+            benchmark_runner.run_benchmark(bench_run_config, client)
 
             benchmark.status = create_status(phase=BenchmarkPhaseEnum.Finished)
             client.put(f"{base_endpoint}/update_benchmark_job", benchmark.model_dump_json())
@@ -130,7 +131,7 @@ class BenchmarkRunner:
             self.running_tasks -= 1
             benchmark.status = create_status(phase=BenchmarkPhaseEnum.Error, message=message)
             try:
-                response = client.put(f"/benchmarks/{benchmark_id}/release_benchmark_job")
+                response = self.service_client.put(f"/benchmarks/{benchmark_id}/release_benchmark_job")
                 if not response.json()["success"]:
                     raise Exception(f"{response.text}")
             except Exception as e:
@@ -148,9 +149,6 @@ def build_benchmark_run_config(
     agents: List[AgentInApp],
     bundles: List[BundleInApp],
     enable_safe_delete: Optional[bool] = False,
-    host: Optional[str] = None,
-    port: Optional[int] = None,
-    token: Optional[str] = None,
     interval: Optional[int] = None,
 ) -> BenchRunConfig:
     benchmark_id = benchmark.metadata.id
@@ -181,9 +179,6 @@ def build_benchmark_run_config(
         agents=agent_infos,
         bundles=_bundles,
         output_dir=get_tempdir(benchmark_id),
-        host=host,
-        port=port,
-        token=token,
         interval=interval,
     )
     return bench_run_config

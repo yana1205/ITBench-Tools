@@ -12,6 +12,7 @@ classifiers = [
 
 dependencies = [
   "boto3==1.35.64",
+  "cryptography==44.0.0",
   "datasets>=3.0.0",
   "gradio[oauth]==4.44.1",
   "gradio_leaderboard==0.0.13",
