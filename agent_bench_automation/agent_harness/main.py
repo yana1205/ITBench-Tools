@@ -24,10 +24,10 @@ log_format = "[%(asctime)s %(levelname)s %(name)s] %(message)s"
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Compliance Assessment Agent (CAA) Benchmark")
+    parser = argparse.ArgumentParser(description="IT-Bench-360 Agent Benchmark Automation")
     parser.add_argument("-v", "--verbose", help="Display verbose output", action="count", default=0)
 
-    # caa agent harness
+    # agent harness
     parser.add_argument("--host", type=str, default=DEFAULT_MINIBENCH_HOST, help=f"The hostname or IP address (default: {DEFAULT_MINIBENCH_HOST}).")
     parser.add_argument("--port", type=int, default=-1, help=f"The port number (Set -1 if you don't use port number).")
     parser.add_argument(
