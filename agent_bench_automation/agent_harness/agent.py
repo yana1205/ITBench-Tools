@@ -60,6 +60,7 @@ class AgentHarness:
         config: Optional[AgentHarnessConfig] = None,
         single_run=False,
         interval=5,
+        benchmark_timeout=300,
     ) -> None:
         self.agent_manifest = agent_manifest
         self.agent_directory = agent_directory
@@ -68,6 +69,7 @@ class AgentHarness:
         self.config = config
         self.single_run = single_run
         self.interval = interval
+        self.benchmark_timeout = benchmark_timeout
         self.rest_client = RestClient(
             self.host,
             self.port,
@@ -126,7 +128,7 @@ class AgentHarness:
 
     async def run_benchmark(self, benchmark_id, agent_id):
 
-        timeout = 300
+        timeout = self.benchmark_timeout
         elapsed_time = 0
         while not self.stop_event.is_set():
 
@@ -242,6 +244,7 @@ def run(args):
         ssl=args.ssl,
         ssl_verify=args.ssl_verify,
         root_path=args.root_path,
+        benchmark_timeout=args.benchmark_timeout,
         config=config,
     )
     asyncio.run(agent_harness.run())

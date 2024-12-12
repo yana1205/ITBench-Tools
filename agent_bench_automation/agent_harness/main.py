@@ -47,6 +47,7 @@ def main():
         action="store_true",
         help=f"If specified, the certificate will be verified; otherwise, verification is disabled (default: disabled).",
     )
+    parser.add_argument("--benchmark_timeout", type=int, default=300, help=f"The timeout seconds for each benchmark (default: 300).")    
 
     args = parser.parse_args()
 
