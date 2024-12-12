@@ -133,8 +133,8 @@ class Benchmark:
                 if info_path.exists():
                     with info_path.open("r") as f:
                         info = BundleInfo.model_validate_json(f.read())
-                        bundle.description = info.description
-                        bundle.incident_type = info.incident_type
+                        bundle.description = bundle.description if bundle.description else info.description
+                        bundle.incident_type = bundle.incident_type if bundle.incident_type else info.incident_type
                 timestamp = get_timestamp()
                 shared_workspace = Path("/tmp") / agent.name / f"{bundle.name}_{timestamp}"
                 shared_workspace.mkdir(parents=True, exist_ok=True)

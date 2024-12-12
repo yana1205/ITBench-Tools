@@ -49,8 +49,10 @@ class BenchmarkResult(BaseModel):
     num_of_passed: int = Field(..., description="The number of passed bundle.")
     score: float = Field(..., description="The ratio of the number of passed bundle over total bundles.")
     date: datetime = Field(..., description="The date and time when the benchmark was performed.")
+    id: Optional[str] = Field(None, description="The unique identifier of benchmerk (benchmark_id).")
 
     class Column:
+        id = "id"
         name = "name"
         agent = "agent"
         incident_type = "incident_type"
@@ -67,6 +69,7 @@ class BenchmarkResult(BaseModel):
         else:
             _results = pd.DataFrame(
                 {
+                    cls.Column.id: pd.Series(dtype="str"),
                     cls.Column.name: pd.Series(dtype="str"),
                     cls.Column.agent: pd.Series(dtype="str"),
                     cls.Column.incident_type: pd.Series(dtype="str"),

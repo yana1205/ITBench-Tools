@@ -23,7 +23,9 @@ from agent_bench_automation.app.models.agent import (
     BundleAccessInfo,
 )
 from agent_bench_automation.app.models.base import Status
+from agent_bench_automation.app.models.benchmark import Benchmark
 from agent_bench_automation.app.models.bundle import Bundle
+from agent_bench_automation.app.models.result import Result
 from agent_bench_automation.app.models.scenario import Scenario
 
 
@@ -79,3 +81,8 @@ class BenchmarkInfo(BaseModel):
     root_bundles: Optional[List[Bundle]] = None
     status: Optional[Status] = None
     creation_timestamp: Optional[datetime] = None
+
+
+class BenchmarkResultsPair(BaseModel):
+    benchmark: Benchmark
+    results: List[Result]

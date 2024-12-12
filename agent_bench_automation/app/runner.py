@@ -157,6 +157,7 @@ def build_benchmark_run_config(
         Bundle(
             id=x.metadata.id,
             name=x.spec.name,
+            description=x.spec.description,
             incident_type=x.spec.scenario_type,
             bundle_ready_timeout=x.spec.bundle_ready_timeout,
             agent_operation_timeout=x.spec.agent_operation_timeout,

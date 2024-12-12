@@ -92,6 +92,7 @@ class BundleResult(BundleInfo):
     errored: bool = Field(False, description="True if an error happened.")
     message: Optional[str] = Field(None, description="Any message.")
     date: datetime = Field(..., description="The date and time when the benchmark was performed.")
+    benchmark_id: Optional[str] = Field(None, description="Denchmark id")
 
     class Column:
         agent = "agent"
@@ -103,6 +104,7 @@ class BundleResult(BundleInfo):
         errored = "errored"
         message = "message"
         date = "date"
+        benchmark_id = "benchmark_id"
 
     @classmethod
     def to_dataframe(cls, results: List["BundleResult"]) -> DataFrame:
@@ -120,6 +122,7 @@ class BundleResult(BundleInfo):
                     cls.Column.errored: pd.Series(dtype="bool"),
                     cls.Column.message: pd.Series(dtype="str"),
                     cls.Column.date: pd.Series(dtype="datetime64[ns]"),
+                    cls.Column.benchmark_id: pd.Series(dtype="str"),
                 }
             )
         return DataFrame(_results)

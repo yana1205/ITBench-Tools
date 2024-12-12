@@ -16,7 +16,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 
-from agent_bench_automation.app.models.base import Env, Metadata, Status
+from agent_bench_automation.app.models.base import Metadata, Status
 from agent_bench_automation.models.bundle import BundleResult
 
 
