@@ -78,3 +78,4 @@ class BenchmarkInfo(BaseModel):
     root_agents: Optional[List[Agent]] = None
     root_bundles: Optional[List[Bundle]] = None
     status: Optional[Status] = None
+    creation_timestamp: Optional[datetime] = None
