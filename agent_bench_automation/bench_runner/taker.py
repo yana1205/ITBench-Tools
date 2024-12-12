@@ -42,9 +42,10 @@ class BenchmarkTaker:
         while elapsed_time < timeout:
             benchmark_infos: List[BenchmarkInfo] = []
             try:
-                response = self.remote_rest_client.get("/registry/list-benchmark")
+                response = self.remote_rest_client.get("/registry/list-benchmark", params={"status": True})
                 data = response.json()
                 benchmark_infos = [BenchmarkInfo.model_validate(x) for x in data]
+                benchmark_infos = [x for x in benchmark_infos if x.status.phase == BenchmarkPhaseEnum.Queued]
             except Exception as e:
                 logger.error(f"Failed to get benchmarks from remote bench server: {e}")
 
@@ -70,11 +71,11 @@ class BenchmarkTaker:
                     response = self.remote_rest_client.get(f"/registry/get-benchmark?benchmark_id={benchmark_id}")
                     data = response.json()
                     benchmark_info = BenchmarkInfo.model_validate(data)
-                    
+
                     status = create_status(phase=BenchmarkPhaseEnum.Running)
                     self.remote_rest_client.put(f"/benchmarks/{benchmark_id}/status", status.model_dump_json())
-                    # response = self.minibench_rest_client.post("/mini-bench", benchmark_info.model_dump_json())
-                    # response.raise_for_status()
+                    response = self.minibench_rest_client.post("/mini-bench", benchmark_info.model_dump_json())
+                    response.raise_for_status()
                     await self.sync_status(benchmark_info.id, benchmark_info.agent_access.id)
                     status = create_status(phase=BenchmarkPhaseEnum.Finished)
                     self.remote_rest_client.put(f"/benchmarks/{benchmark_id}/status", status.model_dump_json())
@@ -98,10 +99,7 @@ class BenchmarkTaker:
             for bundle in bundles:
                 remote_bundle = find_bundle(bundle)
                 if remote_bundle:
-                    if (
-                        remote_bundle.status.phase != bundle.status.phase
-                        or remote_bundle.status.message != bundle.status.message
-                    ):
+                    if remote_bundle.status.phase != bundle.status.phase or remote_bundle.status.message != bundle.status.message:
                         update_bundles.append(bundle)
             for update_bundle in update_bundles:
                 id = update_bundle.metadata.id
