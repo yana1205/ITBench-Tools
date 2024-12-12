@@ -39,7 +39,6 @@ BENCHMARK_RESOURCE_ROOT = "_system"
 
 ROOT_PATH = os.getenv("ROOT_PATH", "")
 SERVICE_API_KEY = os.getenv("SERVICE_API_KEY", "")
-GLOBAL_RESOURCE_ROOT_ID = os.getenv("GLOBAL_RESOURCE_ROOT_ID", "00000000-0000-0000-0000-000000000000")
 
 
 class DefaultBundle(BaseModel):
@@ -67,6 +66,8 @@ class AppConfig(BaseModel):
     default_agent_types: Optional[List[AgentTypeDefinition]] = Field([], description="Default Agent Type Definitions")
     polling_interval: Optional[int] = Field(None, description="Seconds for polling interval.")
     service_accounts: Optional[List[ServiceAccount]] = None
+    admin_user: Optional[str] = "admin"
+    admin_pass: Optional[str] = "admin"
     ssl_enabled: Optional[bool] = Field(False, description="Enable or disable SSL. Set to True to enable SSL for the server.")
     ssl_verify: Optional[bool] = Field(False, description="Enable or disable SSL certificate verification. Set to True to verify the certificate, or False to disable verification (default: False).")
     ssl_auto_gen: Optional[bool] = Field(

@@ -14,7 +14,7 @@
 
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import Optional, TypeAlias
 
 from pydantic import BaseModel
 
@@ -23,6 +23,7 @@ from agent_bench_automation.app.models.base import Metadata, Status
 
 class UserTypeEnum(str, Enum):
     User = "user"
+    Admin = "admin"
     Agent = "agent"
     Service = "service"
 
@@ -59,3 +60,5 @@ class TokenPayload(BaseModel):
     delegated_id: Optional[str] = None
     service_type: Optional[str] = None
     exp: Optional[datetime] = None
+
+UserInfo: TypeAlias = TokenPayload

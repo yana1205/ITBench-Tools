@@ -29,7 +29,7 @@ def run(args):
         args.remote_host,
         args.remote_port,
         headers=headers,
-        protocol=args.remote_ssl,
+        ssl=args.remote_ssl,
         verify=args.remote_ssl_verify,
         root_path=args.remote_root_path,
     )
@@ -37,7 +37,7 @@ def run(args):
         args.minibench_host,
         args.minibench_port,
         headers=headers,
-        protocol=args.minibench_ssl,
+        ssl=args.minibench_ssl,
         verify=args.minibench_ssl_verify,
         root_path=args.minibench_root_path,
     )
@@ -79,5 +79,5 @@ def run(args):
                 response = minibench_rest_client.post("/mini-bench", benchmark_info.model_dump_json())
         else:
             logger.info(f"No new benchmarks come. Wait for {interval} seconds before the next check...")
-            time.sleep(interval)
-            elapsed_time += interval
+        time.sleep(interval)
+        elapsed_time += interval
