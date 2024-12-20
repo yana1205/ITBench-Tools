@@ -83,7 +83,9 @@ class Benchmark:
         benchmark_results = self.benchmark(bench_run_config, rest_client, user_id=user_id)
         write_for_leaderboard(benchmark_results, output_dir)
 
-    def benchmark(self, bench_run_config: BenchRunConfig, rest_client: Optional[RestClient] = None, user_id: Optional[str] = None) -> List[BenchmarkResult]:
+    def benchmark(
+        self, bench_run_config: BenchRunConfig, rest_client: Optional[RestClient] = None, user_id: Optional[str] = None
+    ) -> List[BenchmarkResult]:
         logger = self.get_logger()
         agents = bench_run_config.agents
         bundles = bench_run_config.bundles
@@ -101,12 +103,15 @@ class Benchmark:
             logger.info(f"Benchmark '{ao.agent_info.name}' by scenarios '[{bundle_names}]'")
             bundle_results: List[BundleResult] = []
             for bo in bos:
-                logger.info(f" Run scenario '{bo.bundle.name}'", extra={"agent": ao.agent_info.name})
-                bench_client = BenchClient(bench_run_config=bench_run_config, rest_client=rest_client, user_id=user_id)
-                brs = self.benchmark_per_bundle(ao, bo, bench_client, output_dir_per_agent, bench_run_config)
-                bench_client.upload_bundle_results(bo.bundle, brs)
+                try:
+                    logger.info(f" Run scenario '{bo.bundle.name}'", extra={"agent": ao.agent_info.name})
+                    bench_client = BenchClient(bench_run_config=bench_run_config, rest_client=rest_client, user_id=user_id)
+                    brs = self.benchmark_per_bundle(ao, bo, bench_client, output_dir_per_agent, bench_run_config)
+                    bench_client.upload_bundle_results(bo.bundle, brs)
 
-                bundle_results = bundle_results + brs
+                    bundle_results = bundle_results + brs
+                except Exception as e:
+                    logger.error(f"Unhandle exception happens, ignore it, and go next: {e}")
 
             logger.info(f"Finished benchmarking '{ao.agent_info.name}' by scenarios '{bundle_names}'")
             print(to_summary_table(bundle_results))
@@ -396,6 +401,7 @@ class Analyzer:
         num_of_pass = self.calc_num_of_pass()
         score = self.calc_pass_rate()
         incident_types = self.df[BundleResult.Column.incident_type].dropna().unique()
+        latest_one = max(self.bundle_results, key=lambda x: x.date)
         return BenchmarkResult(
             name=title,
             agent=agent,
@@ -404,7 +410,7 @@ class Analyzer:
             num_of_passed=num_of_pass,
             score=score,
             results=self.bundle_results,
-            date=datetime.now(timezone.utc),
+            date=latest_one.date,
         )
 
 
