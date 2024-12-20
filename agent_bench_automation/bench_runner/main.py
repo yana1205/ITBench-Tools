@@ -21,7 +21,13 @@ from agent_bench_automation.bench_runner.taker import run as mini_bench_run
 
 # TODO: fix circular import of `app.runner`
 # from agent_bench_automation.app.runner import run as bench_run
-from agent_bench_automation.app.config import DEFAULT_HOST, DEFAULT_PORT, DEFAULT_MINIBENCH_HOST, DEFAULT_MINIBENCH_PORT
+from agent_bench_automation.app.config import (
+    DEFAULT_HOST,
+    DEFAULT_PORT,
+    DEFAULT_MINIBENCH_HOST,
+    DEFAULT_MINIBENCH_PORT,
+    DEFAULT_MINIBENCH_TIMEOUT_SECONDS,
+)
 
 logger = logging.getLogger(__name__)
 log_format = "[%(asctime)s %(levelname)s %(name)s] %(message)s"
@@ -88,6 +94,12 @@ def main():
         action="store_true",
         help=f"Verify the SSL certificate for connections to Mini Benchmark. If specified, the certificate will be verified; otherwise, verification is disabled (default: disabled).",
     )
+    parser.add_argument(
+        "--minibench_timeout",
+        type=int,
+        default=DEFAULT_MINIBENCH_TIMEOUT_SECONDS,
+        help=f"Overall timeout seconds for minibench runner. If negative, it won't finish unless exception. (default: 600).",
+    )
 
     args = parser.parse_args()
 
@@ -96,10 +108,10 @@ def main():
     else:
         logging.basicConfig(format=log_format, level=logging.INFO)
 
-    wait_timeout = 600
+    wait_timeout = args.minibench_timeout
     wait_interval = 20
     start = time.time()
-    while time.time() - start < wait_timeout:
+    while wait_timeout < 0 or time.time() - start < wait_timeout:
         try:
             if args.mini:
                 mini_bench_run(args)
