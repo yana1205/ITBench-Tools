@@ -17,7 +17,7 @@ import logging
 import shutil
 import time
 from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import DefaultDict, Dict, List, Optional
 from uuid import uuid4
@@ -25,6 +25,7 @@ from uuid import uuid4
 import pandas as pd
 from pydantic import BaseModel
 
+import agent_bench_automation.observer
 from agent_bench_automation.agent_operator import AgentOperator
 from agent_bench_automation.app.models.base import AgentPhaseEnum, BundlePhaseEnum
 from agent_bench_automation.bench_client import BenchClient
@@ -42,6 +43,7 @@ from agent_bench_automation.models.bundle import (
     BundleRequest,
     BundleResult,
 )
+from agent_bench_automation.observer import Observer
 
 logger = logging.getLogger(__name__)
 log_format = "[%(asctime)s %(levelname)s %(name)s] %(message)s"
@@ -49,8 +51,9 @@ log_format = "[%(asctime)s %(levelname)s %(name)s] %(message)s"
 
 class Benchmark:
 
-    def __init__(self, _logger: Optional[logging.Logger] = None) -> None:
+    def __init__(self, observer: Optional[Observer] = None, _logger: Optional[logging.Logger] = None) -> None:
         self.logger = _logger if _logger else None
+        self.observer = observer if observer else agent_bench_automation.observer.DEFAULT_OBSERVER
 
     def get_logger(self) -> logging.Logger:
         return self.logger if self.logger else logger
@@ -168,9 +171,9 @@ class Benchmark:
                         shutil.copy(updated_input_file, dump)
 
                 if self.get_logger():
-                    bo = BundleOperator(bundle, br, bench_config.is_test, _logger=self.get_logger())
+                    bo = BundleOperator(bundle, br, observer=self.observer, is_test=bench_config.is_test, _logger=self.get_logger())
                 else:
-                    bo = BundleOperator(bundle, br, bench_config.is_test)
+                    bo = BundleOperator(bundle, br, observer=self.observer, is_test=bench_config.is_test)
 
                 agent_bundle_pairs.append((ao, bo))
 
@@ -191,6 +194,16 @@ class Benchmark:
     ):
         logger = self.get_logger()
 
+        self.observer.notify(
+            "benchmark_per_bundle:start",
+            {
+                "agent_info": agent_operator.agent_info,
+                "bundle": bundle_operator.bundle,
+                "bundle_request": bundle_operator.bundle_request,
+                "output_dir": output_dir,
+                "bench_run_config": bench_run_config,
+            },
+        )
         bench_config = bench_run_config.config
         output_dir_per_bundle = output_dir / bundle_operator.bundle.name
         output_dir_per_bundle.mkdir(parents=True, exist_ok=True)
@@ -279,7 +292,8 @@ class Benchmark:
                 bundle_result.message = "Agent status did not change Finished to Ready."
             bundle_results.append(bundle_result)
         except BundleError as e:
-            bundle_results.append(self.build_error_result(agent, bundle, e.message))
+            bundle_result = self.build_error_result(agent, bundle, e.message)
+            bundle_results.append(bundle_result)
             bench_client.push_bundle_status(bundle_id, BundlePhaseEnum.Error, e.message)
 
         o = output_dir_per_bundle / "bundle-result.json"
@@ -393,7 +407,9 @@ class Analyzer:
         return self.df[BundleResult.Column.passed].sum().item()
 
     def calc_pass_rate(self) -> float:
-        total = len(self.df)
+        total = len(self.df[self.df[BundleResult.Column.errored] == False])
+        if total == 0:
+            return 0
         return self.calc_num_of_pass() / total
 
     def to_benchmark_result(self, title, agent) -> BenchmarkResult:

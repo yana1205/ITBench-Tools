@@ -19,7 +19,7 @@ from pydantic import BaseModel, Field
 
 from agent_bench_automation.app.models.agent_type_definition import AgentTypeDefinition
 from agent_bench_automation.app.models.bundle import BundleSpec
-from agent_bench_automation.app.storage.factory import StorageConfig
+from agent_bench_automation.app.storage.config import StorageConfig
 
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8000
@@ -40,6 +40,8 @@ BENCHMARK_RESOURCE_ROOT = "_system"
 
 ROOT_PATH = os.getenv("ROOT_PATH", "")
 SERVICE_API_KEY = os.getenv("SERVICE_API_KEY", "")
+PROJECT_LOG_LEVEL = os.getenv("PROJECT_LOG_LEVEL", "")
+ROOT_LOG_LEVEL = os.getenv("ROOT_LOG_LEVEL", "")
 
 
 class DefaultBundle(BaseModel):
@@ -70,7 +72,10 @@ class AppConfig(BaseModel):
     admin_user: Optional[str] = "admin"
     admin_pass: Optional[str] = "admin"
     ssl_enabled: Optional[bool] = Field(False, description="Enable or disable SSL. Set to True to enable SSL for the server.")
-    ssl_verify: Optional[bool] = Field(False, description="Enable or disable SSL certificate verification. Set to True to verify the certificate, or False to disable verification (default: False).")
+    ssl_verify: Optional[bool] = Field(
+        False,
+        description="Enable or disable SSL certificate verification. Set to True to verify the certificate, or False to disable verification (default: False).",
+    )
     ssl_auto_gen: Optional[bool] = Field(
         False,
         description="Enable automatic generation of a self-signed SSL certificate. If True, a certificate will be generated dynamically.",

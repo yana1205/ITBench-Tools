@@ -45,6 +45,7 @@ class BenchmarkRunner:
         app_config: AppConfig,
         runner_id: str,
         service_type: str,
+        interval=10,
     ) -> None:
         self.app_config = app_config
         self.runner_id = runner_id
@@ -54,20 +55,21 @@ class BenchmarkRunner:
         self.ssl_verify = app_config.ssl_verify
         self.max_concurrent_tasks = 1
         self.running_tasks = 0
-        self.interval = 10
+        self.interval = interval
         self.service_type = service_type
         self.service_client: RestClient
+        self.stop_event = asyncio.Event()
 
     async def run(self):
 
         service_accounts = [x for x in self.app_config.service_accounts if x.type == self.service_type]
         if len(service_accounts) == 0:
-            raise Exception("Please specify correct service type")
+            logger.error("Please specify correct service type")
         service_account = service_accounts[0]
         self.service_client = RestClient(self.host, self.port, ssl=self.ssl, verify=self.ssl_verify)
         self.service_client.login(service_account.id, SERVICE_API_KEY)
 
-        while True:
+        while not self.stop_event.is_set():
             if self.running_tasks < self.max_concurrent_tasks:
                 logger.info("Fetch benchmark jobs...")
                 self.service_client.login(service_account.id, SERVICE_API_KEY)
@@ -119,7 +121,7 @@ class BenchmarkRunner:
             benchmark.status = create_status(phase=BenchmarkPhaseEnum.Running)
             benchmark.spec.log_file_path = logfilepath
             client.put(f"{base_endpoint}/update_benchmark_job", benchmark.model_dump_json())
-            benchmark_runner.run_benchmark(bench_run_config, client)
+            await asyncio.to_thread(benchmark_runner.run_benchmark, bench_run_config, client)
 
             benchmark.status = create_status(phase=BenchmarkPhaseEnum.Finished)
             client.put(f"{base_endpoint}/update_benchmark_job", benchmark.model_dump_json())
@@ -142,6 +144,10 @@ class BenchmarkRunner:
                 client.put(f"{base_endpoint}/update_benchmark_job", benchmark.model_dump_json())
             except Exception as e:
                 logger.error(f"Failed to update status of benchmark id '{benchmark.metadata.id}': {e}")
+
+    async def stop(self):
+        logger.info(f"Stopping benchmark runner...")
+        self.stop_event.set()
 
 
 def build_benchmark_run_config(

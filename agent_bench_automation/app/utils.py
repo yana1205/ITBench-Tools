@@ -15,6 +15,7 @@
 import json
 from datetime import datetime, timezone
 from typing import List, Optional
+from uuid import uuid4
 
 from fastapi import Request
 
@@ -38,6 +39,10 @@ def get_timestamp() -> datetime:
 
 def get_timestamp_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def get_uuid() -> str:
+    return str(uuid4())
 
 
 def create_status(phase: str, message: Optional[str] = None) -> Status:

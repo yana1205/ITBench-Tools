@@ -26,6 +26,7 @@ from agent_bench_automation.models.bundle import (
     BundleRequest,
     BundleStatus,
 )
+from agent_bench_automation.observer import Observer
 
 DEFAULT_WAIT_INTERVAL = int(os.getenv("DEFAULT_WAIT_INTERVAL", "5"))
 DEFAULT_WAIT_TIMEOUT = int(os.getenv("DEFAULT_WAIT_TIMEOUT", "300"))
@@ -36,9 +37,17 @@ log_format = "[%(asctime)s %(levelname)s %(name)s] %(message)s"
 
 class BundleOperator:
 
-    def __init__(self, bundle: Bundle, bundle_request: BundleRequest, is_test: bool = False, _logger: Optional[logging.Logger] = None) -> None:
+    def __init__(
+        self,
+        bundle: Bundle,
+        bundle_request: BundleRequest,
+        observer: Observer,
+        is_test: bool = False,
+        _logger: Optional[logging.Logger] = None,
+    ) -> None:
         self.bundle = bundle
         self.bundle_request = bundle_request
+        self.observer = observer
         self.is_test = is_test
         self.logger = _logger if _logger else logger
         self.make_targets = self.bundle.make_target_mapping
@@ -173,30 +182,39 @@ class BundleOperator:
                 commant_args = commant_args + extra_args
             if self.is_test:
                 commant_args += ["TEST=true"]
+            cwd = self.bundle.get_path().as_posix()
+            self.observer.notify("invoke_bundle:run_process:start", {"target": target, "commant_args": commant_args, "cwd": cwd, "env": current_env})
             process = subprocess.Popen(
                 commant_args,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 universal_newlines=True,
-                cwd=self.bundle.get_path().as_posix(),
+                cwd=cwd,
                 env=current_env,
             )
 
             process.wait()
+            returncode = process.returncode
+            stdout = process.stdout.read()
+            stderr = process.stderr.read()
 
-            if process.returncode != 0:
-                logger.error(f"An error occurred. Return code: {process.returncode}")
-                logger.error(process.stderr.read())
+            self.observer.notify("invoke_bundle:run_process:end", {"returncode": returncode, "stdout": stdout, "stderr": stderr, "retry": retry})
+
+            if returncode != 0:
+                logger.error(f"An error occurred. Return code: {returncode}")
+                logger.error(stderr)
                 _retry = retry + 1
                 logger.error(f"Retry {_retry}/{max_retry}")
                 if _retry > max_retry:
                     raise Exception(f"{_retry} is exxess {max_retry}")
                 time.sleep(interval)
                 return self.invoke_bundle(target, extra_args, _retry)
-            return process.stdout.read()
+            return stdout
 
         except Exception as e:
-            logger.error(f"An exception occurred: {e}")
+            message = f"An exception occurred: {e}"
+            self.observer.notify("invoke_bundle:run_process:error", {"error": message})
+            logger.error(message)
 
     def wait_bundle(self, type, status="True", interval: Optional[int] = None, timeout: Optional[int] = None) -> bool:
         interval = interval if interval else DEFAULT_WAIT_INTERVAL
