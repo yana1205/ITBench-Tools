@@ -23,7 +23,7 @@ class AgentTypeTask(BaseModel):
 
 
 class AgentTypeDefinition(BaseModel):
-    id: str = Field(..., description="The human readable unique identifier for the Agent type, e.g., 'SRE' or 'Compliance'.")
+    id: str = Field(..., description="The human readable unique identifier for the Agent type, e.g., 'SRE' or 'CISO'.")
     allowed_levels: List[str] = Field(
         ..., description="A list of levels permitted for this Agent type, such as 'Beginner', 'Intermediate', or 'Expert'."
     )

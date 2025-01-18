@@ -21,7 +21,7 @@ from agent_bench_automation.app.models.bundle import BundleSpec
 
 
 class ScenarioSpec(BaseModel):
-    type: str = Field(..., description="The Agent type, e.g., 'SRE', 'FinOps', 'Compliance'.")
+    type: str = Field(..., description="The Agent type, e.g., 'SRE', 'FinOps', 'CISO'.")
     name: str = Field(..., description="The name of the scenario, providing a human-readable identifier.")
     description: str = Field(..., description="A brief explanation of what the scenario entails.")
     complexity: str = Field(..., description="The complexity level of the scenario, e.g., 'Low', 'Medium', or 'High'.")

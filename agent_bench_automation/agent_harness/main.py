@@ -24,7 +24,7 @@ log_format = "[%(asctime)s %(levelname)s %(name)s] %(message)s"
 
 
 def main():
-    parser = argparse.ArgumentParser(description="IT-Bench-360 Agent Benchmark Automation")
+    parser = argparse.ArgumentParser(description="IT-Bench Agent Benchmark Automation")
     parser.add_argument("-v", "--verbose", help="Display verbose output", action="count", default=0)
 
     # agent harness
@@ -47,7 +47,7 @@ def main():
         action="store_true",
         help=f"If specified, the certificate will be verified; otherwise, verification is disabled (default: disabled).",
     )
-    parser.add_argument("--benchmark_timeout", type=int, default=300, help=f"The timeout seconds for each benchmark (default: 300).")    
+    parser.add_argument("--benchmark_timeout", type=int, default=300, help=f"The timeout seconds for each benchmark (default: 300).")
 
     args = parser.parse_args()
 

@@ -34,7 +34,7 @@ log_format = "[%(asctime)s %(levelname)s %(name)s] %(message)s"
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Compliance Assessment Agent (CAA) Benchmark")
+    parser = argparse.ArgumentParser(description="CISO Agent Benchmark")
     parser.add_argument("-v", "--verbose", help="Display verbose output", action="count", default=0)
 
     # normal bench runner
