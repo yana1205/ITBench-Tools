@@ -15,7 +15,6 @@
 import asyncio
 import logging
 from pathlib import Path
-from typing import List, Optional
 
 import yaml
 
@@ -30,11 +29,13 @@ from agent_bench_automation.app.models.benchmark import (
     BenchmarkJobTake,
 )
 from agent_bench_automation.app.models.bundle import Bundle as BundleInApp
-from agent_bench_automation.app.utils import create_status, get_tempdir
+from agent_bench_automation.app.runner_utils import (
+    build_benchmark_run_config,
+    get_specific_log_file_path,
+    setup_request_logger,
+)
+from agent_bench_automation.app.utils import create_status
 from agent_bench_automation.common.rest_client import RestClient
-from agent_bench_automation.models.agent import AgentInfo
-from agent_bench_automation.models.benchmark import BenchConfig, BenchRunConfig
-from agent_bench_automation.models.bundle import Bundle
 
 logger = logging.getLogger(__name__)
 
@@ -57,23 +58,32 @@ class BenchmarkRunner:
         self.running_tasks = 0
         self.interval = interval
         self.service_type = service_type
-        self.service_client: RestClient
+        self.job_client: RestClient
         self.stop_event = asyncio.Event()
 
-    async def run(self):
+    def init_job_client(self):
+        self.job_client = RestClient(self.host, self.port, ssl=self.ssl, verify=self.ssl_verify)
+        self.auth_job_client()
 
+    def auth_job_client(self):
         service_accounts = [x for x in self.app_config.service_accounts if x.type == self.service_type]
         if len(service_accounts) == 0:
             logger.error("Please specify correct service type")
         service_account = service_accounts[0]
-        self.service_client = RestClient(self.host, self.port, ssl=self.ssl, verify=self.ssl_verify)
-        self.service_client.login(service_account.id, SERVICE_API_KEY)
+        self.job_client.login(service_account.id, SERVICE_API_KEY)
+
+    def create_finished_status(self):
+        return create_status(phase=BenchmarkPhaseEnum.Finished)
+
+    async def run(self):
+
+        self.init_job_client()
 
         while not self.stop_event.is_set():
             if self.running_tasks < self.max_concurrent_tasks:
                 logger.info("Fetch benchmark jobs...")
-                self.service_client.login(service_account.id, SERVICE_API_KEY)
-                response = self.service_client.get("/benchmarks/queue/list_benchmark_jobs")
+                self.auth_job_client()
+                response = self.job_client.get("/benchmarks/queue/list_benchmark_jobs")
                 data = response.json()
                 jobs = [BenchmarkJob.model_validate(x) for x in data]
                 if len(jobs) == 0:
@@ -81,14 +91,15 @@ class BenchmarkRunner:
                 for job in jobs:
                     benchmark_id = job.benchmark.metadata.id
                     body = BenchmarkJobTake(runner_id=self.runner_id)
-                    response = self.service_client.put(f"/benchmarks/{benchmark_id}/take_benchmark_job", body=body.model_dump_json())
+                    response = self.job_client.put(f"/benchmarks/{benchmark_id}/take_benchmark_job", body=body.model_dump_json())
                     data = response.json()
                     if data["success"] == True:
+                        job.benchmark.spec.runner_id = self.runner_id  # TODO: fix to get the latest job from server
                         logger.info(f"Benchmark job '{benchmark_id}' is successfully taken. Start benchmark...")
                         self.running_tasks += 1
                         asyncio.create_task(self.run_benchmark(job.benchmark, job.agent_manifest))
                     else:
-                        logger.info(f"Benchmark job '{benchmark_id}' is not successfully assigned.")
+                        logger.info(f"Benchmark job '{benchmark_id}' is already assigned.")
             else:
                 logger.info("The number of current task is over max concurrent jobs. Wait for the runner to be available.")
             await asyncio.sleep(self.interval)
@@ -123,7 +134,7 @@ class BenchmarkRunner:
             client.put(f"{base_endpoint}/update_benchmark_job", benchmark.model_dump_json())
             await asyncio.to_thread(benchmark_runner.run_benchmark, bench_run_config, client)
 
-            benchmark.status = create_status(phase=BenchmarkPhaseEnum.Finished)
+            benchmark.status = self.create_finished_status()
             client.put(f"{base_endpoint}/update_benchmark_job", benchmark.model_dump_json())
             logger.info("Benchmarking is finished")
             self.running_tasks -= 1
@@ -133,7 +144,7 @@ class BenchmarkRunner:
             self.running_tasks -= 1
             benchmark.status = create_status(phase=BenchmarkPhaseEnum.Error, message=message)
             try:
-                response = self.service_client.put(f"/benchmarks/{benchmark_id}/release_benchmark_job")
+                response = self.job_client.put(f"/benchmarks/{benchmark_id}/release_benchmark_job")
                 if not response.json()["success"]:
                     raise Exception(f"{response.text}")
             except Exception as e:
@@ -148,73 +159,6 @@ class BenchmarkRunner:
     async def stop(self):
         logger.info(f"Stopping benchmark runner...")
         self.stop_event.set()
-
-
-def build_benchmark_run_config(
-    benchmark: Benchmark,
-    agents: List[AgentInApp],
-    bundles: List[BundleInApp],
-    enable_safe_delete: Optional[bool] = False,
-    interval: Optional[int] = None,
-) -> BenchRunConfig:
-    benchmark_id = benchmark.metadata.id
-    agent_infos = [AgentInfo(id=x.metadata.id, name=x.spec.name, directory=x.spec.path if x.spec.path else "", mode=x.spec.mode) for x in agents]
-    _bundles = [
-        Bundle(
-            id=x.metadata.id,
-            name=x.spec.name,
-            description=x.spec.description,
-            incident_type=x.spec.scenario_type,
-            bundle_ready_timeout=x.spec.bundle_ready_timeout,
-            agent_operation_timeout=x.spec.agent_operation_timeout,
-            directory=f"{x.spec.root_dir}/{x.spec.path}" if x.spec.root_dir else x.spec.path,
-            params=x.spec.params,
-            input=x.spec.data["input"] if x.spec.data and "input" in x.spec.data else None,
-            env=x.spec.env,
-            make_target_mapping=x.spec.make_target_mapping,
-            enable_evaluation_wait=x.spec.enable_evaluation_wait,
-            use_input_file=False,
-        )
-        for x in bundles
-    ]
-
-    bench_config = BenchConfig(title=benchmark.spec.name, is_test=False, soft_delete=enable_safe_delete)
-    bench_run_config = BenchRunConfig(
-        benchmark_id=benchmark_id,
-        push_model=True,
-        config=bench_config,
-        agents=agent_infos,
-        bundles=_bundles,
-        output_dir=get_tempdir(benchmark_id),
-        interval=interval,
-    )
-    return bench_run_config
-
-
-def setup_request_logger(benchmark_id: str, debug=False) -> logging.Logger:
-    logger = logging.getLogger(benchmark_id)
-    log_format = logging.Formatter("[%(asctime)s %(levelname)s] %(message)s")
-    log_file_name = f"log_{benchmark_id}.log"
-
-    if logger.hasHandlers():
-        logger.handlers.clear()
-
-    file_handler = logging.FileHandler(log_file_name)
-    if debug:
-        file_handler.setLevel(logging.DEBUG)
-    else:
-        file_handler.setLevel(logging.INFO)
-    file_handler.setFormatter(log_format)
-    logger.addHandler(file_handler)
-
-    return logger
-
-
-def get_specific_log_file_path(logger_instance, benchmark_id):
-    for handler in logger_instance.handlers:
-        if isinstance(handler, logging.FileHandler) and benchmark_id in handler.baseFilename:
-            return handler.baseFilename
-    return None
 
 
 def run(args):

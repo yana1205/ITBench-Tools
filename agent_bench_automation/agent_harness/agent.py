@@ -15,6 +15,7 @@
 import asyncio
 import json
 import logging
+import traceback
 from pathlib import Path
 from typing import Any, List, Optional
 
@@ -188,7 +189,8 @@ class AgentHarness:
             self.add_history(benchmark_id, target_bundle, stdout)
             self.rest_client.push_agent_status(benchmark_id, agent_id, AgentPhaseEnum.Finished, message=stdout)
         except Exception as e:
-            logger.error(e)
+            err = traceback.format_exc()
+            logger.error(err)
             self.rest_client.push_agent_status(benchmark_id, agent_id, AgentPhaseEnum.Error, message=f"{e}")
 
         def wait_bundle_finished():

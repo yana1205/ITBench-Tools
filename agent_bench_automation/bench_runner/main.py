@@ -17,7 +17,7 @@ import logging
 import time
 from requests.exceptions import ConnectionError
 
-from agent_bench_automation.bench_runner.taker import run as mini_bench_run
+from agent_bench_automation.bench_runner import minibench, taker
 
 # TODO: fix circular import of `app.runner`
 # from agent_bench_automation.app.runner import run as bench_run
@@ -39,10 +39,11 @@ def main():
 
     # normal bench runner
     parser.add_argument("-c", "--config", type=str, help="Path to the application configuration.")
-    parser.add_argument("-i", "--runner_id", type=str, help="Unique identifier for the runner.")
+    parser.add_argument("-i", "--runner_id", type=str, help="Unique identifier for the runner.", required=True)
 
     # mini bench runner
-    parser.add_argument("--mini", action="store_true", help="If specified, run in the old mode i.e. \"mini bench runner\"")
+    parser.add_argument("--mini_runner", action="store_true", help="If specified, run mini bench runner")
+    parser.add_argument("--mini_taker", action="store_true", help="If specified, run mini bench taker")
     parser.add_argument(
         "--remote_host", type=str, default=DEFAULT_HOST, help=f"The hostname or IP address to remote Benchmark Server (default: {DEFAULT_HOST})."
     )
@@ -113,8 +114,10 @@ def main():
     start = time.time()
     while wait_timeout < 0 or time.time() - start < wait_timeout:
         try:
-            if args.mini:
-                mini_bench_run(args)
+            if args.mini_taker:
+                taker.run(args)
+            elif args.mini_runner:
+                minibench.run(args)
             else:
                 raise Exception("not implemented")
                 # bench_run(args)

@@ -24,6 +24,7 @@ class BenchmarkPhaseEnum(str, Enum):
     NotStarted = "NotStarted"
     Running = "Running"
     Finished = "Finished"
+    PendingResultUpload = "PendingResultUpload"
     Queued = "Queued"
     Error = "Error"
 

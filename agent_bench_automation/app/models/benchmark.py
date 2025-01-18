@@ -25,6 +25,7 @@ from agent_bench_automation.app.models.scenario import Scenario
 class BenchmarkSpec(BaseModel):
     name: str
     runner_id: Optional[str] = None
+    agent_id: Optional[str] = None
     scenarios: Optional[List[Scenario]] = None
     log_file_path: Optional[str] = None
     bundle_results_path: Optional[str] = None
