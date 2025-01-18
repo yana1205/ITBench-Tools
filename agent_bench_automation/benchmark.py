@@ -288,10 +288,14 @@ class Benchmark:
                     bundle_result.errored = True
                     bundle_result.message = "Agent status did not change Finished to Ready."
             bundle_results.append(bundle_result)
-        except BundleError as e:
-            bundle_result = self.build_error_result(agent, bundle, e.message)
+        except (BundleError, Exception) as e:
+            if isinstance(e, BundleError):
+                message = e.message
+            else:
+                message = str(e)
+            bundle_result = self.build_error_result(agent, bundle, message)
             bundle_results.append(bundle_result)
-            bench_client.push_bundle_status(bundle_id, BundlePhaseEnum.Error, e.message)
+            bench_client.push_bundle_status(bundle_id, BundlePhaseEnum.Error, message)
 
         o = output_dir_per_bundle / "bundle-result.json"
         logger.info(f"Write to {o.as_posix()}")

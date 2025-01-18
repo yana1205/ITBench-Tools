@@ -70,7 +70,7 @@ class AgentOperator:
         logger.info("Goal:\n" + goal)
         goal = goal.replace("`", "\\`")
         cwd = f"{self.agent_info.directory}"
-        cmd = f"source .venv/bin/activate; python src/caa_agent/main.py --goal \"{goal}\" --auto-approve -o {opath.as_posix()}"
+        cmd = f"source .venv/bin/activate; python src/ciso_agent/main.py --goal \"{goal}\" --auto-approve -o {opath.as_posix()}"
         logger.info(f"Command: {cmd}")
         stdout, stderr = self.run_cmd(cwd, None, cmd)
 
