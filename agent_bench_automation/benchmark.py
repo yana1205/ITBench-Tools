@@ -234,7 +234,8 @@ class Benchmark:
             bench_client.push_bundle_status(bundle_id, BundlePhaseEnum.Ready)
 
             agent_result: WaitAgentResult
-            if ao.agent_info.mode and ao.agent_info.mode == "remote":
+            agent_remote_mode = ao.agent_info.mode and ao.agent_info.mode == "remote"
+            if agent_remote_mode:
                 agent_result = self.wait_for_agent_status(
                     bench_client, ao.agent_info.id, timeout=bundle.bundle_ready_timeout, timeout_of_execution=bundle.agent_operation_timeout
                 )
@@ -281,10 +282,11 @@ class Benchmark:
 
             bench_client.push_bundle_status(bundle_id, BundlePhaseEnum.Terminated)
 
-            agent_result = self.wait_for_agent_to_move_next(bench_client, ao.agent_info.id, timeout=bundle.bundle_ready_timeout)
-            if not agent_result.success:
-                bundle_result.errored = True
-                bundle_result.message = "Agent status did not change Finished to Ready."
+            if agent_remote_mode:
+                agent_result = self.wait_for_agent_to_move_next(bench_client, ao.agent_info.id, timeout=bundle.bundle_ready_timeout)
+                if not agent_result.success:
+                    bundle_result.errored = True
+                    bundle_result.message = "Agent status did not change Finished to Ready."
             bundle_results.append(bundle_result)
         except BundleError as e:
             bundle_result = self.build_error_result(agent, bundle, e.message)
