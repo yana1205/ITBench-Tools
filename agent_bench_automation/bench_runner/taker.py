@@ -16,6 +16,8 @@ import asyncio
 import logging
 from typing import List, Optional, TypeVar
 
+from requests import HTTPError
+
 from agent_bench_automation.app.models.agent import Agent
 from agent_bench_automation.app.models.base import BenchmarkPhaseEnum
 from agent_bench_automation.app.models.benchmark import (
@@ -126,8 +128,11 @@ class BenchmarkTaker:
 
                 if obsolete_entries:
                     logger.warning(f"Obsolete benchmarks are detected: {obsolete_entries}")
+            except HTTPError as e:
+                logger.error(f"HTTP Error happens in the loop: {e}")
+                logger.error(f"{e.response.json()}")
             except Exception as e:
-                logger.error(f"Exception hgappens in the loop: {e}")
+                logger.error(f"Exception happens in the loop: {e}")
             finally:
                 logger.info(f"Next sync will occur in {interval} seconds.")
                 await asyncio.sleep(interval)
