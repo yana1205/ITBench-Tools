@@ -36,7 +36,7 @@ RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o "aws
     unzip awscliv2.zip && \
     ./aws/install
 # install `opa`
-RUN curl -L -o opa https://openpolicyagent.org/downloads/latest/opa_linux_$(dpkg --print-architecture) && \
+RUN curl -L -o opa https://github.com/open-policy-agent/opa/releases/download/v1.0.0/opa_linux_$(dpkg --print-architecture)_static && \
     chmod +x ./opa && \
     mv ./opa /usr/local/bin/opa
 

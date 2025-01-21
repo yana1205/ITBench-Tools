@@ -26,7 +26,7 @@ RUN curl -LO https://dl.k8s.io/release/v1.31.0/bin/linux/$(dpkg --print-architec
     chmod +x ./kubectl && \
     mv ./kubectl /usr/local/bin/kubectl
 # install `opa`
-RUN curl -L -o opa https://openpolicyagent.org/downloads/latest/opa_linux_$(dpkg --print-architecture) && \
+RUN curl -L -o opa https://github.com/open-policy-agent/opa/releases/download/v1.0.0/opa_linux_$(dpkg --print-architecture)_static && \
     chmod +x ./opa && \
     mv ./opa /usr/local/bin/opa
 
