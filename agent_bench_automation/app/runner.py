@@ -98,6 +98,7 @@ class BenchmarkRunner:
                         logger.info(f"Benchmark job '{benchmark_id}' is successfully taken. Start benchmark...")
                         self.running_tasks += 1
                         asyncio.create_task(self.run_benchmark(job.benchmark, job.agent_manifest))
+                        break
                     else:
                         logger.info(f"Benchmark job '{benchmark_id}' is already assigned.")
             else:
