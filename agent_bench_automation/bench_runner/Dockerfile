@@ -15,7 +15,7 @@ RUN ln -sf /bin/bash /bin/sh
 #######################################
 
 # install `ansible-playbook`
-RUN pip install ansible-core jmespath kubernetes --no-cache-dir
+RUN pip install ansible-core jmespath kubernetes==31.0.0 --no-cache-dir
 RUN ansible-galaxy collection install kubernetes.core
 # install `helm`
 RUN curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | tee /usr/share/keyrings/helm.gpg > /dev/null && \

@@ -17,7 +17,7 @@ RUN ln -sf /bin/bash /bin/sh
 RUN pip install -r /etc/agent-benchmark/agent_bench_automation/agent_harness/requirements.txt --no-cache-dir
 
 # install `ansible-playbook`
-RUN pip install ansible-core jmespath kubernetes --no-cache-dir
+RUN pip install ansible-core jmespath kubernetes==31.0.0 --no-cache-dir
 RUN ansible-galaxy collection install kubernetes.core
 # install `jq`
 RUN apt update -y && apt install -y jq
