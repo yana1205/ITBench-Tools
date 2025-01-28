@@ -39,7 +39,10 @@ RUN curl -LO https://dl.k8s.io/release/v1.31.0/bin/linux/$(dpkg --print-architec
 RUN curl -Lo kops https://github.com/kubernetes/kops/releases/download/$(curl -s https://api.github.com/repos/kubernetes/kops/releases/latest | grep tag_name | cut -d '"' -f 4)/kops-linux-amd64 && \
     chmod +x kops && \
     mv kops /usr/local/bin/kops
-
+# install `aws`
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o "awscliv2.zip" && \
+    unzip awscliv2.zip && \
+    ./aws/install
 # install `opa`
 RUN curl -L -o opa https://openpolicyagent.org/downloads/latest/opa_linux_$(dpkg --print-architecture) && \
     chmod +x ./opa && \
