@@ -1,5 +1,10 @@
 #!/bin/bash
 
+###
+# This entrypoint.sh file is only for development purpose at trying docker-compose.
+# Now we use Kubernetes with Helm. Please refer to deployment manifests for running agent-harness.
+###
+
 remote_host=$1
 remote_port=$2
 agent_api_name=$3
