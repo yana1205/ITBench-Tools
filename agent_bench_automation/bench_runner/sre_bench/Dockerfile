@@ -1,6 +1,6 @@
 FROM python:3.11.10-slim
 
-RUN apt update -y && apt install -y curl gnupg2
+RUN apt update -y && apt install -y curl gnupg2 unzip
 RUN mkdir /etc/agent-benchmark
 COPY agent_bench_automation /etc/agent-benchmark/agent_bench_automation
 COPY pyproject.toml /etc/agent-benchmark/pyproject.toml
