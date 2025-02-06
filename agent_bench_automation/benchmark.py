@@ -28,7 +28,7 @@ from pydantic import BaseModel
 import agent_bench_automation.observer
 from agent_bench_automation.agent_operator import AgentOperator
 from agent_bench_automation.app.models.base import AgentPhaseEnum, BundlePhaseEnum
-from agent_bench_automation.bench_client import BenchClient
+from agent_bench_automation.bench_client import BenchClient, BenchNotFoundException
 from agent_bench_automation.bundle_operator import BundleError, BundleOperator
 from agent_bench_automation.common.rest_client import RestClient
 from agent_bench_automation.models.agent import AgentInfo
@@ -109,10 +109,14 @@ class Benchmark:
                 try:
                     logger.info(f" Run scenario '{bo.bundle.name}'", extra={"agent": ao.agent_info.name})
                     bench_client = BenchClient(bench_run_config=bench_run_config, rest_client=rest_client, user_id=user_id)
+                    bench_client.validate_benchmark()
                     brs = self.benchmark_per_bundle(ao, bo, bench_client, output_dir_per_agent, bench_run_config)
                     bench_client.upload_bundle_results(bo.bundle, brs)
 
                     bundle_results = bundle_results + brs
+                except BenchNotFoundException as e:
+                    logger.error("Benchmark not found. This might happen if someone deleted the benchmark. " "Exception details: %s", str(e))
+                    break
                 except Exception as e:
                     logger.error(f"Unhandle exception happens, ignore it, and go next: {e}")
 
