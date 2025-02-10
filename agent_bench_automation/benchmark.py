@@ -297,6 +297,9 @@ class Benchmark:
                 message = e.message
             else:
                 message = str(e)
+            error_action_message = bo.error_action()
+            if error_action_message:
+                message = message + "\n" + str(error_action_message)
             bundle_result = self.build_error_result(agent, bundle, message)
             bundle_results.append(bundle_result)
             bench_client.push_bundle_status(bundle_id, BundlePhaseEnum.Error, message)

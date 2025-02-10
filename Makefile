@@ -10,7 +10,7 @@ test-unit:
 .PHONY: test-e2e-filesystem
 test-e2e-filesystem:
 	@echo "Running E2E tests with storage type: filesystem"
-	@pytest tests/e2e --storage-type filesystem
+	@DEFAULT_MAX_INTERVAL=1 DEFAULT_MAX_RETRY=1 pytest tests/e2e --storage-type filesystem
 
 .PHONY: test-e2e-postgresql
 test-e2e-postgresql:
@@ -18,7 +18,7 @@ test-e2e-postgresql:
 	@echo "Starting Docker services for PostgreSQLDB"
 	@docker-compose -f ./postgresql/docker-compose.yaml up -d; \
 	trap 'echo "Stopping Docker services for PostgreSQLDB"; docker-compose -f ./postgresql/docker-compose.yaml down' EXIT; \
-	pytest tests/e2e --storage-type postgresql
+	DEFAULT_MAX_INTERVAL=1 DEFAULT_MAX_RETRY=1 pytest tests/e2e --storage-type postgresql
 
 .PHONY: format
 format:

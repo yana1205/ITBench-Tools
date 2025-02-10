@@ -22,6 +22,7 @@ from typing import Any, Dict, List
 from agent_bench_automation.agent_operator import AgentOperator
 from agent_bench_automation.app.models.agent import Agent, AgentSpec
 from agent_bench_automation.app.models.base import AgentPhaseEnum, Metadata
+from agent_bench_automation.app.models.bundle import Env, MakeCmd
 from agent_bench_automation.app.utils import create_status, get_timestamp
 from agent_bench_automation.benchmark import (
     BenchClient,
@@ -60,10 +61,16 @@ observer = Observer()
 observer.register(gen_json_logging_callback(logger))
 
 
+class CallCount:
+    def __init__(self):
+        self.mock_error = 0
+
+
 class Mock(ABC):
 
     def __init__(self, monkeypatch):
         self.monkeypatch = monkeypatch
+        self.call_count = CallCount()
 
     def get_status(self) -> BundleStatus:
         pass
@@ -98,10 +105,22 @@ class Mock(ABC):
     def mock_delete(self, **kwargs):
         self.replace_get_status_method([bundle_statues.DESTROYING, bundle_statues.DESTROYED])
 
+    def mock_error(self, **kwargs):
+        self.call_count.mock_error = self.call_count.mock_error + 1
+        self.replace_get_status_method([bundle_statues.DESTROYING, bundle_statues.DESTROYED])
+
     def gen_mock_invoke_bundle(self):
 
-        def mock_invoke_bundle(_self, target, extra_args=[], retry=0, max_retry=1, interval=1):
-            _kwargs = {"_self": _self, "target": target, "extra_args": extra_args, "retry": retry, "max_retry": max_retry, "interval": interval}
+        def mock_invoke_bundle(_self, target, extra_args=[], env={}, retry=0, max_retry=1, interval=1):
+            _kwargs = {
+                "_self": _self,
+                "target": target,
+                "extra_args": extra_args,
+                "env": env,
+                "retry": retry,
+                "max_retry": max_retry,
+                "interval": interval,
+            }
             if target == "get_status":
                 status_json = self.get_status().model_dump_json()
                 data = {"status": json.loads(status_json)}
@@ -116,6 +135,8 @@ class Mock(ABC):
                 return self.mock_inject_fault(**_kwargs)
             elif target == "delete":
                 return self.mock_delete(**_kwargs)
+            elif target == "on_error":
+                return self.mock_error(**_kwargs)
 
         return mock_invoke_bundle
 
@@ -176,6 +197,7 @@ def test_evaluate_agent(monkeypatch):
         "bundle2": False,
     }
     evaluate_agent(mock, bundle_map)
+    assert mock.call_count.mock_error == 0
 
 
 def test_evaluate_agent_with_bundle_error(monkeypatch):
@@ -204,16 +226,21 @@ def test_evaluate_agent_with_bundle_error(monkeypatch):
 
     mock = _Mock(monkeypatch)
     evaluate_agent(mock, bundle_map)
+    assert mock.call_count.mock_error == 1
 
 
 def run_benchmark(mock: Mock, bundles: List[str], agent_success_map: Dict[str, str]) -> List[BenchmarkResult]:
+    bundles = [Bundle(id="test", name=x, directory=".", incident_type="test", status=bundle_statues.INITIAL, polling_interval=1) for x in bundles]
+    return run_benchmark_with_bundles(mock, bundles, agent_success_map)
+
+
+def run_benchmark_with_bundles(mock: Mock, bundles: List[Bundle], agent_success_map: Dict[str, str]) -> List[BenchmarkResult]:
     monkeypatch = mock.monkeypatch
     monkeypatch.setattr(BundleOperator, "invoke_bundle", mock.gen_mock_invoke_bundle())
     monkeypatch.setattr(AgentOperator, "invoke_agent", mock.gen_mock_invoke_agent())
     monkeypatch.setattr(BenchClient, "get_agent_status", lambda self, agent_id: build_agent())
 
     agents = [AgentInfo(id="test", name=x, directory=".") for x in agent_success_map.keys()]
-    bundles = [Bundle(id="test", name=x, directory=".", incident_type="test", status=bundle_statues.INITIAL, polling_interval=1) for x in bundles]
 
     bench_config = BenchConfig(title="test", is_test=True, soft_delete=False, resolution_wait=1)
     bench_run_config = BenchRunConfig(
@@ -243,6 +270,7 @@ def test_benchmark(monkeypatch):
     assert benchmark_results[0].agent == "agent1" and (benchmark_results[0].score > 0.49 and benchmark_results[0].score < 0.51)
     assert benchmark_results[1].agent == "agent2" and benchmark_results[1].score < 0.01
     write_for_leaderboard(benchmark_results, OUTPUT_DIR)
+    assert mock.call_count.mock_error == 0
 
 
 def test_benchmark_with_bundle_error(monkeypatch):
@@ -274,8 +302,10 @@ def test_benchmark_with_bundle_error(monkeypatch):
                 super().mock_deploy_bundle(**kwargs)
 
     mock = _Mock(monkeypatch)
-    benchmark_results = run_benchmark(mock, bundles, agent_success_map)
+    bundles = [Bundle(id="test", name=x, directory=".", incident_type="test", status=bundle_statues.INITIAL, polling_interval=1) for x in bundles]
+    benchmark_results = run_benchmark_with_bundles(mock, bundles, agent_success_map)
     # score to be 1.0 since consider only cases where errors do not happen.
     assert benchmark_results[0].agent == "agent1" and (benchmark_results[0].score > 0.99)
     assert benchmark_results[1].agent == "agent2" and benchmark_results[1].score < 0.01
     write_for_leaderboard(benchmark_results, OUTPUT_DIR)
+    assert mock.call_count.mock_error == 2  # 1 bundle in each bench should be error
