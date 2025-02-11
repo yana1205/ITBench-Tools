@@ -30,6 +30,8 @@ from agent_bench_automation.observer import Observer
 
 DEFAULT_WAIT_INTERVAL = int(os.getenv("DEFAULT_WAIT_INTERVAL", "5"))
 DEFAULT_WAIT_TIMEOUT = int(os.getenv("DEFAULT_WAIT_TIMEOUT", "300"))
+DEFAULT_RETRY_INTERVAL = int(os.getenv("DEFAULT_RETRY_INTERVAL", "5"))
+DEFAULT_MAX_RETRY = int(os.getenv("DEFAULT_MAX_RETRY", "3"))
 
 logger = logging.getLogger(__name__)
 log_format = "[%(asctime)s %(levelname)s %(name)s] %(message)s"
@@ -58,10 +60,11 @@ class BundleOperator:
         revert = MakeCmd(target="revert")
         get = MakeCmd(target="get")
         status = MakeCmd(target="get_status")
+        on_error = MakeCmd(target="on_error")
 
         if not self.make_targets:
             self.make_targets = MakeTargetMapping(
-                deploy=deploy, inject_fault=inject_fault, evaluate=evaluate, delete=delete, revert=revert, get=get, status=status
+                deploy=deploy, inject_fault=inject_fault, evaluate=evaluate, delete=delete, revert=revert, get=get, status=status, on_error=on_error
             )
         self.make_targets.deploy = self.make_targets.deploy if self.make_targets.deploy else deploy
         self.make_targets.inject_fault = self.make_targets.inject_fault if self.make_targets.inject_fault else inject_fault
@@ -70,6 +73,7 @@ class BundleOperator:
         self.make_targets.revert = self.make_targets.revert if self.make_targets.revert else revert
         self.make_targets.get = self.make_targets.get if self.make_targets.get else get
         self.make_targets.status = self.make_targets.status if self.make_targets.status else status
+        self.make_targets.on_error = self.make_targets.on_error if self.make_targets.on_error else on_error
 
     def __get_target(self, mkcmd: MakeCmd, default: Optional[str]) -> None:
         if self.make_targets:
@@ -167,7 +171,26 @@ class BundleOperator:
             result["details"] = json.dumps(result["details"])
         return BundleEvaluation.model_validate(result)
 
-    def invoke_bundle(self, target, extra_args=[], retry=0, max_retry=3, interval=5):
+    def error_action(self) -> Optional[str]:
+        mk = self.make_targets.on_error
+        if not mk or mk.unused:
+            message = "No error handler is registered. Nothing to do."
+            logger.info(message)
+            return
+        logger.info(f"Executing 'on_error' target: {mk.target}, {mk.params}, {mk.env}.")
+        extra_args = mk.params if mk.params else []
+        env = mk.env if mk.env else {}
+        try:
+            res = self.invoke_bundle(mk.target, extra_args=extra_args, env=env)
+            if not self.wait_bundle("Destroyed", interval=self.bundle.polling_interval, timeout=self.bundle.bundle_ready_timeout):
+                raise BundleError("ErrorAction Failed", "Destroyed", mk.target)
+            return res
+        except Exception as e:
+            message = f"Failed to execute 'on_error' target: {mk.target}. " f"Exception: {type(e).__name__}, Message: {str(e)}"
+            logger.error(message, exc_info=True)
+            return message
+
+    def invoke_bundle(self, target, extra_args=[], env={}, retry=0, max_retry=DEFAULT_MAX_RETRY, interval=DEFAULT_RETRY_INTERVAL):
         logger = self.logger
 
         try:
@@ -204,11 +227,11 @@ class BundleOperator:
                 logger.error(f"An error occurred. Return code: {returncode}")
                 logger.error(stderr)
                 _retry = retry + 1
-                logger.error(f"Retry {_retry}/{max_retry}")
                 if _retry > max_retry:
                     raise Exception(f"{_retry} is exxess {max_retry}")
+                logger.error(f"Retry {_retry}/{max_retry}")
                 time.sleep(interval)
-                return self.invoke_bundle(target, extra_args, _retry)
+                return self.invoke_bundle(target, extra_args, retry=_retry)
             return stdout
 
         except Exception as e:

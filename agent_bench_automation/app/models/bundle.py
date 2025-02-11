@@ -41,6 +41,9 @@ class MakeTargetMapping(BaseModel):
     revert: Optional[MakeCmd] = Field(None, description="The Makefile target for reverting environment without deleting.")
     status: MakeCmd = Field(..., description="The Makefile target for retrieving or polling status.")
     get: MakeCmd = Field(..., description="The Makefile target for retrieving data.")
+    on_error: Optional[MakeCmd] = Field(
+        None, description="The Makefile target to be executed on error. If not provided, no action will be taken on error."
+    )
 
 
 class BundleSpec(BaseModel):

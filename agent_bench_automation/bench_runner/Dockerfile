@@ -4,6 +4,7 @@ RUN apt update -y && apt install -y curl gnupg2 unzip
 RUN mkdir /etc/agent-benchmark
 COPY agent_bench_automation /etc/agent-benchmark/agent_bench_automation
 COPY pyproject.toml /etc/agent-benchmark/pyproject.toml
+RUN pip install --upgrade setuptools==70.0.0
 RUN pip install -e /etc/agent-benchmark --no-cache-dir
 COPY docs /etc/agent-benchmark/docs
 COPY data /etc/agent-benchmark/data
@@ -15,7 +16,7 @@ RUN ln -sf /bin/bash /bin/sh
 #######################################
 
 # install `ansible-playbook`
-RUN pip install ansible-core jmespath kubernetes --no-cache-dir
+RUN pip install ansible-core jmespath kubernetes==31.0.0 --no-cache-dir
 RUN ansible-galaxy collection install kubernetes.core
 # install `helm`
 RUN curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | tee /usr/share/keyrings/helm.gpg > /dev/null && \
@@ -36,7 +37,7 @@ RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o "aws
     unzip awscliv2.zip && \
     ./aws/install
 # install `opa`
-RUN curl -L -o opa https://openpolicyagent.org/downloads/latest/opa_linux_$(dpkg --print-architecture) && \
+RUN curl -L -o opa https://github.com/open-policy-agent/opa/releases/download/v1.0.0/opa_linux_$(dpkg --print-architecture)_static && \
     chmod +x ./opa && \
     mv ./opa /usr/local/bin/opa
 
