@@ -219,6 +219,11 @@ class Benchmark:
         bundle = bo.bundle
         bundle_id = bo.bundle.id
 
+        # Set bundle params for SRE
+        if bundle.incident_type == "SRE":
+            bo.bundle.params["RUN_UUID"] = bench_run_config.benchmark_id
+            bo.bundle.params["PARTICIPANT_AGENT_UUID"] = ao.agent_info.id
+
         try:
 
             bench_client.push_bundle_status(bundle_id, BundlePhaseEnum.Provisioning)
