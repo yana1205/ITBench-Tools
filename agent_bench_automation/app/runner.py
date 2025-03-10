@@ -19,7 +19,7 @@ from pathlib import Path
 import yaml
 
 import agent_bench_automation.benchmark
-from agent_bench_automation.app.config import SERVICE_API_KEY, AppConfig
+from agent_bench_automation.app.config import AppConfig, get_service_api_key
 from agent_bench_automation.app.models.agent import Agent as AgentInApp
 from agent_bench_automation.app.models.agent import AgentManifest
 from agent_bench_automation.app.models.base import BenchmarkPhaseEnum
@@ -70,7 +70,7 @@ class BenchmarkRunner:
         if len(service_accounts) == 0:
             logger.error("Please specify correct service type")
         service_account = service_accounts[0]
-        self.job_client.login(service_account.id, SERVICE_API_KEY)
+        self.job_client.login(service_account.id, get_service_api_key(service_account.id))
 
     def create_finished_status(self):
         return create_status(phase=BenchmarkPhaseEnum.Finished)

@@ -17,7 +17,7 @@ import logging
 import shutil
 import time
 from collections import defaultdict
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import DefaultDict, Dict, List, Optional
 from uuid import uuid4
@@ -28,6 +28,7 @@ from pydantic import BaseModel
 import agent_bench_automation.observer
 from agent_bench_automation.agent_operator import AgentOperator
 from agent_bench_automation.app.models.base import AgentPhaseEnum, BundlePhaseEnum
+from agent_bench_automation.bechmark_analyzer import Analyzer
 from agent_bench_automation.bench_client import BenchClient, BenchNotFoundException
 from agent_bench_automation.bundle_operator import BundleError, BundleOperator
 from agent_bench_automation.common.rest_client import RestClient
@@ -405,42 +406,6 @@ class Benchmark:
 class WaitAgentResult(BaseModel):
     success: bool
     message: Optional[str] = None
-
-
-class Analyzer:
-
-    def __init__(self, bundle_results: List[BundleResult]) -> None:
-        self.df = BundleResult.to_dataframe(bundle_results)
-        self.bundle_results = bundle_results
-
-    def calc_mttr(self) -> timedelta:
-        return self.df[BundleResult.Column.ttr].mean().to_pytimedelta()
-
-    def calc_num_of_pass(self) -> float:
-        return self.df[BundleResult.Column.passed].sum().item()
-
-    def calc_pass_rate(self) -> float:
-        total = len(self.df[self.df[BundleResult.Column.errored] == False])
-        if total == 0:
-            return 0
-        return self.calc_num_of_pass() / total
-
-    def to_benchmark_result(self, title, agent) -> BenchmarkResult:
-        mttr = self.calc_mttr()
-        num_of_pass = self.calc_num_of_pass()
-        score = self.calc_pass_rate()
-        incident_types = self.df[BundleResult.Column.incident_type].dropna().unique()
-        latest_one = max(self.bundle_results, key=lambda x: x.date)
-        return BenchmarkResult(
-            name=title,
-            agent=agent,
-            incident_type=",".join(incident_types),
-            mttr=mttr,
-            num_of_passed=num_of_pass,
-            score=score,
-            results=self.bundle_results,
-            date=latest_one.date,
-        )
 
 
 def to_summary_table(bundle_results: List[BundleResult]) -> str:

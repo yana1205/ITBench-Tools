@@ -24,11 +24,8 @@ from agent_bench_automation.app.models.agent import Agent, AgentSpec
 from agent_bench_automation.app.models.base import AgentPhaseEnum, Metadata
 from agent_bench_automation.app.models.bundle import Env, MakeCmd
 from agent_bench_automation.app.utils import create_status, get_timestamp
-from agent_bench_automation.benchmark import (
-    BenchClient,
-    Benchmark,
-    write_for_leaderboard,
-)
+from agent_bench_automation.bench_client import BenchClient
+from agent_bench_automation.benchmark import Benchmark, write_for_leaderboard
 from agent_bench_automation.bundle_operator import BundleOperator
 from agent_bench_automation.models.agent import AgentInfo
 from agent_bench_automation.models.benchmark import (

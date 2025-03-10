@@ -16,6 +16,7 @@ import os
 from typing import List, Optional
 
 from pydantic import BaseModel, Field
+from pydantic_settings import BaseSettings
 
 from agent_bench_automation.app.models.agent_type_definition import AgentTypeDefinition
 from agent_bench_automation.app.models.bundle import BundleSpec
@@ -28,9 +29,15 @@ DEFAULT_MINIBENCH_PORT = 8001
 DEFAULT_MINIBENCH_TIMEOUT_SECONDS = 600
 
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "tmp4now")
+# Session Encryption Key
 SESSION_SECRET_KEY = os.getenv("SESSION_SECRET_KEY", "tmp4nowsession")
+
+# Session Key Name
 TOKEN_SESSION_KEY = os.getenv("TOKEN_SESSION_KEY", "tmp4now")
 LEADERBOARD_SESSION_KEY = "leaderboard"
+OAUTH_ERROR_SESSION_KEY = "oauth_error"
+OAUTH_IT_BENCH_TOKEN_SESSION_KEY = "oauth_it_bench_token"
+
 HASH_ALGORITHM = "HS256"
 TOKEN_EXPIRATION_MINUTES = 60
 
@@ -40,8 +47,30 @@ BENCHMARK_RESOURCE_ROOT = "_system"
 
 ROOT_PATH = os.getenv("ROOT_PATH", "")
 SERVICE_API_KEY = os.getenv("SERVICE_API_KEY", "")
+SERVICE_GITOPS_API_KEY = os.getenv("SERVICE_GITOPS_API_KEY", "")
+
 PROJECT_LOG_LEVEL = os.getenv("PROJECT_LOG_LEVEL", "")
 ROOT_LOG_LEVEL = os.getenv("ROOT_LOG_LEVEL", "")
+
+# FEATURE_FLAG_SOMETHING = os.getenv("FEATURE_FLAG_SOMETHING", "")
+FEATURE_FLAGS = {
+    # "FEATURE_FLAG_SOMETHING": FEATURE_FLAG_SOMETHING,
+}
+
+GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID", "")
+GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET", "")
+
+
+def get_feature_flag(name: str):
+    if name in FEATURE_FLAGS:
+        return FEATURE_FLAGS[name] == "true"
+    return False
+
+
+def get_service_api_key(service_name):
+    if service_name == "service_gitops":
+        return SERVICE_GITOPS_API_KEY
+    return SERVICE_API_KEY
 
 
 class DefaultBundle(BaseModel):
@@ -58,7 +87,7 @@ class ServiceAccount(BaseModel):
     type: str
 
 
-class AppConfig(BaseModel):
+class AppConfig(BaseSettings):
     host: Optional[str] = Field(DEFAULT_HOST, description="Host to bind the server. Default is 127.0.0.1.")
     port: Optional[int] = Field(DEFAULT_PORT, description="Port to bind the server. Default is 8000.")
     storage_config: StorageConfig
@@ -94,3 +123,9 @@ class AppConfig(BaseModel):
     ssl_key_file: Optional[str] = Field(
         None, description="Path to the SSL key file. Required if SSL is enabled and not using auto-generated certificates."
     )
+
+    github_auth_url: str = Field("https://github.com/login/oauth/authorize", description="URL for GitHub OAuth authorization.")
+    github_token_url: str = Field(
+        "https://github.com/login/oauth/access_token", description="URL to exchange authorization code for an access token."
+    )
+    github_user_url: str = Field("https://api.github.com/user", description="GitHub API endpoint to fetch user details.")

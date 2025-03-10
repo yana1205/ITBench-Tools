@@ -34,6 +34,7 @@ class UserSpec(BaseModel):
     user_type: UserTypeEnum
     service_type: Optional[str] = None
     delegated_to: Optional[str] = ""
+    github_username: Optional[str] = None
 
 
 class User(BaseModel):
@@ -45,12 +46,19 @@ class User(BaseModel):
 class UserCreation(BaseModel):
     username: str
     password: str
+    github_username: Optional[str] = None
 
 
 class UserCreationResponse(BaseModel):
     username: str
     id: str
     message: Optional[str] = ""
+
+
+class UserInfoResponse(BaseModel):
+    username: str
+    user_type: UserTypeEnum
+    github_username: Optional[str] = None
 
 
 class TokenPayload(BaseModel):
@@ -60,5 +68,6 @@ class TokenPayload(BaseModel):
     delegated_id: Optional[str] = None
     service_type: Optional[str] = None
     exp: Optional[datetime] = None
+
 
 UserInfo: TypeAlias = TokenPayload
