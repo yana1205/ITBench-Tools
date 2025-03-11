@@ -129,3 +129,8 @@ class AppConfig(BaseSettings):
         "https://github.com/login/oauth/access_token", description="URL to exchange authorization code for an access token."
     )
     github_user_url: str = Field("https://api.github.com/user", description="GitHub API endpoint to fetch user details.")
+
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+        env_prefix = "IT_BENCH_"
