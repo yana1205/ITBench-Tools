@@ -81,3 +81,6 @@ class BenchmarkResult(BaseModel):
                 }
             )
         return DataFrame(_results)
+
+class GlobalBenchmarkResult(BenchmarkResult):
+    github_username: Optional[str] = Field(None, description="Github username")

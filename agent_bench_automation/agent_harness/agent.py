@@ -121,7 +121,7 @@ class AgentHarness:
                     )
                 if self.single_run:
                     logger.info("Task completed. Exiting due to run-once mode.")
-                    self.stop()
+                    await self.stop()
             else:
                 logger.info(f"No benchmark entries with status 'NotStarted' found. Wait for {self.interval} seconds before the next check...")
             await asyncio.sleep(self.interval)
@@ -248,5 +248,6 @@ def run(args):
         root_path=args.root_path,
         benchmark_timeout=args.benchmark_timeout,
         config=config,
+        single_run=args.single_run,
     )
     asyncio.run(agent_harness.run())

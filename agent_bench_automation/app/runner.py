@@ -15,6 +15,7 @@
 import asyncio
 import logging
 from pathlib import Path
+from typing import Optional
 
 import yaml
 
@@ -45,7 +46,9 @@ class BenchmarkRunner:
         self,
         app_config: AppConfig,
         runner_id: str,
-        service_type: str,
+        service_type: Optional[str] = None,
+        token: Optional[str] = None,
+        single_run=False,
         interval=10,
     ) -> None:
         self.app_config = app_config
@@ -58,6 +61,8 @@ class BenchmarkRunner:
         self.running_tasks = 0
         self.interval = interval
         self.service_type = service_type
+        self.token = token
+        self.single_run = single_run
         self.job_client: RestClient
         self.stop_event = asyncio.Event()
 
@@ -66,11 +71,14 @@ class BenchmarkRunner:
         self.auth_job_client()
 
     def auth_job_client(self):
-        service_accounts = [x for x in self.app_config.service_accounts if x.type == self.service_type]
-        if len(service_accounts) == 0:
-            logger.error("Please specify correct service type")
-        service_account = service_accounts[0]
-        self.job_client.login(service_account.id, get_service_api_key(service_account.id))
+        if self.service_type:
+            service_accounts = [x for x in self.app_config.service_accounts if x.type == self.service_type]
+            if len(service_accounts) == 0:
+                logger.error("Please specify correct service type")
+            service_account = service_accounts[0]
+            self.job_client.login(service_account.id, get_service_api_key(service_account.id))
+        elif self.token:
+            self.job_client.headers["Authorization"] = f"Bearer {self.token}"
 
     def create_finished_status(self):
         return create_status(phase=BenchmarkPhaseEnum.Finished)
@@ -101,6 +109,9 @@ class BenchmarkRunner:
                         break
                     else:
                         logger.info(f"Benchmark job '{benchmark_id}' is already assigned.")
+                if self.single_run and self.running_tasks < 1:
+                    logger.info("Task completed. Exiting due to run-once mode.")
+                    await self.stop()
             else:
                 logger.info("The number of current task is over max concurrent jobs. Wait for the runner to be available.")
             await asyncio.sleep(self.interval)
@@ -168,5 +179,5 @@ def run(args):
     with Path(config_path).open("r") as f:
         data = yaml.safe_load(f)
         app_config = AppConfig.model_validate(data)
-    runner = BenchmarkRunner(app_config, args.runner_id, args.service_type)
+    runner = BenchmarkRunner(app_config, args.runner_id, args.service_type, args.token, single_run=args.single_run)
     asyncio.run(runner.run())
