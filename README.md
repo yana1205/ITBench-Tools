@@ -1,4 +1,4 @@
-# IT-Bench Tools
+# IT-Bench Utilities
 
 This repository provides a toolkit for [ITBench](https://github.com/IBM/itbench), including the containerized components used to run and evaluate agents.
 
