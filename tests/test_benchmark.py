@@ -19,30 +19,30 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Dict, List
 
-from agent_bench_automation.agent_operator import AgentOperator
-from agent_bench_automation.app.models.agent import Agent, AgentSpec
-from agent_bench_automation.app.models.base import AgentPhaseEnum, Metadata
-from agent_bench_automation.app.models.bundle import Env, MakeCmd
-from agent_bench_automation.app.utils import create_status, get_timestamp
-from agent_bench_automation.bench_client import BenchClient
-from agent_bench_automation.benchmark import Benchmark, write_for_leaderboard
-from agent_bench_automation.bundle_operator import BundleOperator
-from agent_bench_automation.models.agent import AgentInfo
-from agent_bench_automation.models.benchmark import (
+from itbench_tools.agent_operator import AgentOperator
+from itbench_tools.app.models.agent import Agent, AgentSpec
+from itbench_tools.app.models.base import AgentPhaseEnum, Metadata
+from itbench_tools.app.models.bundle import Env, MakeCmd
+from itbench_tools.app.utils import create_status, get_timestamp
+from itbench_tools.bench_client import BenchClient
+from itbench_tools.benchmark import Benchmark, write_for_leaderboard
+from itbench_tools.bundle_operator import BundleOperator
+from itbench_tools.models.agent import AgentInfo
+from itbench_tools.models.benchmark import (
     BenchConfig,
     BenchmarkResult,
     BenchRunConfig,
 )
-from agent_bench_automation.models.bundle import (
+from itbench_tools.models.bundle import (
     Bundle,
     BundleRequest,
     BundleResult,
     BundleStatus,
 )
-from agent_bench_automation.observer import Observer, gen_json_logging_callback
+from itbench_tools.observer import Observer, gen_json_logging_callback
 from tests import bundle_statues
 
-OUTPUT_DIR = Path(os.getenv("TEST_OUTPUT_DIR", "/tmp/agent_bench_automation_test"))
+OUTPUT_DIR = Path(os.getenv("TEST_OUTPUT_DIR", "/tmp/itbench_tools_test"))
 
 
 def build_agent():

@@ -24,7 +24,7 @@ fi
 curl -s -X GET -H "Authorization: Bearer $agent_token" "$endpoint/registry/agent-manifest/$agent_id" > /tmp/agent-manifest.json
 echo "Agent manifest has been obtained."
 
-python -u agent_bench_automation/agent_harness/main.py \
+python -u itbench_tools/agent_harness/main.py \
         --host $agent_api_name \
         --port $agent_api_port \
         --agent_directory /etc/mounted_agent \

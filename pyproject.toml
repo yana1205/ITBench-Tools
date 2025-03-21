@@ -3,7 +3,7 @@ requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "agent-bench-automation"
+name = "itbench-tools"
 requires-python = ">=3.11"
 keywords = ["one", "two"]
 classifiers = [
@@ -24,7 +24,7 @@ dependencies = [
 dynamic = ["version"]
 
 [project.scripts]
-agent-bench-automation = "agent_bench_automation.main:main"
+itbench-tools = "itbench_tools.main:main"
 
 [project.optional-dependencies]
 dev = [
@@ -40,10 +40,10 @@ dev = [
 ]
 
 [tool.setuptools.dynamic]
-version = {attr = "agent_bench_automation.__version__.__version__"}
+version = {attr = "itbench_tools.__version__.__version__"}
 
 [tool.setuptools]
-package-dir = { "agent_bench_automation" = "agent_bench_automation" }
+package-dir = { "itbench_tools" = "itbench_tools" }
 
 [tool.pytest.ini_options]
 log_cli = true

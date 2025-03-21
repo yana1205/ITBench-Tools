@@ -2,11 +2,11 @@ FROM python:3.11.10-slim
 
 RUN apt update -y && apt install -y curl gnupg2 unzip
 RUN mkdir /etc/agent-benchmark
-COPY agent_bench_automation /etc/agent-benchmark/agent_bench_automation
+COPY itbench_tools /etc/agent-benchmark/itbench_tools
 COPY pyproject.toml /etc/agent-benchmark/pyproject.toml
 RUN pip install -e /etc/agent-benchmark --no-cache-dir
-RUN pip install -r /etc/agent-benchmark/agent_bench_automation/bench_runner/sre_bench/requirements.txt --no-cache-dir
-RUN ansible-galaxy install -r /etc/agent-benchmark/agent_bench_automation/bench_runner/sre_bench/requirements.yaml
+RUN pip install -r /etc/agent-benchmark/itbench_tools/bench_runner/sre_bench/requirements.txt --no-cache-dir
+RUN ansible-galaxy install -r /etc/agent-benchmark/itbench_tools/bench_runner/sre_bench/requirements.yaml
 RUN ln -sf /bin/bash /bin/sh
 
 # TODO: consider how to handle deps dynamically
