@@ -1,0 +1,89 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+# GitHub recommends pinning actions to a commit SHA.
+# To get a newer version, you will need to update the SHA.
+# You can also reference a tag or branch, but the action may change without warning.
+
+name: release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build with semantic versioning
+    runs-on: ubuntu-latest
+    outputs:
+      release-tag: ${{ steps.release.outputs.tag }}
+      release-version: ${{ steps.release.outputs.version }}
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install semantic-release
+        run: pip install python-semantic-release==9.21.0
+      - name: Python Semantic Release
+        id: release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          semantic-release version --patch --print > version.txt
+          semantic-release version --patch
+          TAG="v$(cat version.txt)"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "version=$(cat version.txt)" >> $GITHUB_OUTPUT
+      - name: Check release
+        if: steps.release.outputs.released == 'false'
+        run: |
+          echo 'No release will be made since there are no release commits. See also Commit Parsers configuration.'
+          exit 1
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install build tools
+        run: |
+          make install-dev
+      - name: Build
+        run: |
+          make build
+      - name: Store the distribution packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+
+  publish-to-github:
+    name: Publish to GitHub
+    needs:
+      - build
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      packages: write
+      id-token: write  # IMPORTANT: mandatory for trusted publishing
+
+    steps:
+      - name: Download all the dists
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+      - name: Sign the dists with Sigstore
+        uses: sigstore/gh-action-sigstore-python@v3.0.0
+        with:
+          inputs: |
+            ./dist/*.tar.gz
+            ./dist/*.whl
+      - name: Upload package distributions to GitHub Releases
+        run: gh release upload ${{needs.build.outputs.release-tag}} ./dist/*
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.REPOSITORY }}
