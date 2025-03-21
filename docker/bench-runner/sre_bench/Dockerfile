@@ -4,19 +4,20 @@ RUN apt update -y && apt install -y curl gnupg2 unzip
 RUN mkdir /etc/agent-benchmark
 COPY agent_bench_automation /etc/agent-benchmark/agent_bench_automation
 COPY pyproject.toml /etc/agent-benchmark/pyproject.toml
-RUN pip install --upgrade setuptools==70.0.0
 RUN pip install -e /etc/agent-benchmark --no-cache-dir
-COPY docs /etc/agent-benchmark/docs
-COPY data /etc/agent-benchmark/data
+RUN pip install -r /etc/agent-benchmark/agent_bench_automation/bench_runner/sre_bench/requirements.txt --no-cache-dir
+RUN ansible-galaxy install -r /etc/agent-benchmark/agent_bench_automation/bench_runner/sre_bench/requirements.yaml
 RUN ln -sf /bin/bash /bin/sh
 
 # TODO: consider how to handle deps dynamically
 #######################################
-# Install caa-bundle dependencies 
+# Install sre-bundle dependencies 
 #######################################
 
+# install git
+RUN apt install -y git-all
 # install `ansible-playbook`
-RUN pip install ansible-core jmespath kubernetes==31.0.0 --no-cache-dir
+RUN pip install ansible-core jmespath kubernetes --no-cache-dir
 RUN ansible-galaxy collection install kubernetes.core
 # install `helm`
 RUN curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | tee /usr/share/keyrings/helm.gpg > /dev/null && \
@@ -32,12 +33,16 @@ RUN apt install -y make
 RUN curl -LO https://dl.k8s.io/release/v1.31.0/bin/linux/$(dpkg --print-architecture)/kubectl && \
     chmod +x ./kubectl && \
     mv ./kubectl /usr/local/bin/kubectl
-# install `aws` (need this for using kubectl against AWS cluster)
+# install `kops`
+RUN curl -Lo kops https://github.com/kubernetes/kops/releases/download/$(curl -s https://api.github.com/repos/kubernetes/kops/releases/latest | grep tag_name | cut -d '"' -f 4)/kops-linux-amd64 && \
+    chmod +x kops && \
+    mv kops /usr/local/bin/kops
+# install `aws`
 RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-$(uname -m).zip" -o "awscliv2.zip" && \
     unzip awscliv2.zip && \
     ./aws/install
 # install `opa`
-RUN curl -L -o opa https://github.com/open-policy-agent/opa/releases/download/v1.0.0/opa_linux_$(dpkg --print-architecture)_static && \
+RUN curl -L -o opa https://openpolicyagent.org/downloads/latest/opa_linux_$(dpkg --print-architecture) && \
     chmod +x ./opa && \
     mv ./opa /usr/local/bin/opa
 
