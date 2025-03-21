@@ -1,31 +1,28 @@
 #!/bin/bash
 
-###
-# This entrypoint.sh file is only for development purpose at trying docker-compose.
-# Now we use Kubernetes with Helm. Please refer to deployment manifests for running agent-harness.
-###
+cd /etc/agent-benchmark
 
-remote_host=$1
-remote_port=$2
-agent_api_name=$3
-agent_api_port=$4
-agent_id=$5
-agent_token=$6
+port="443"
+root_path="/bench-server"
+benchmark_timeout="300"
 
-echo "Installing agent..."
-pip install -e /etc/mounted_agent > /dev/null
-echo "The agent has been installed. Start running harness."
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --host) host="$2"; shift 2 ;;
+    --port) port="$2"; shift 2 ;;
+    --root_path) runner_id="$2"; shift 2 ;;
+    --benchmark_timeout) token="$2"; shift 2 ;;
+    *) echo "Unknown option: $1"; exit 1 ;;
+  esac
+done
 
-endpoint="$remote_host"
-if [[ $remote_port -gt 0 ]]; then
-        endpoint="$remote_host:$remote_port"
-fi
-
-curl -s -X GET -H "Authorization: Bearer $agent_token" "$endpoint/registry/agent-manifest/$agent_id" > /tmp/agent-manifest.json
-echo "Agent manifest has been obtained."
-
-python -u itbench_tools/agent_harness/main.py \
-        --host $agent_api_name \
-        --port $agent_api_port \
-        --agent_directory /etc/mounted_agent \
-        -i /tmp/agent-manifest.json
+python itbench_tools/agent_harness/main.py \
+  --agent_directory /etc/ciso-agent \
+  -i /tmp/agent-manifest.json \
+  -c /etc/ciso-agent/agent-harness.yaml \
+  --host $host \
+  --port $port \
+  --root_path $root_path \
+  --ssl \
+  --benchmark_timeout $benchmark_timeout \
+  --single_run
