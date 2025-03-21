@@ -14,120 +14,68 @@
 
 import argparse
 import logging
-import time
-from requests.exceptions import ConnectionError
 
-from agent_bench_automation.bench_runner import minibench, taker
-
-# TODO: fix circular import of `app.runner`
-# from agent_bench_automation.app.runner import run as bench_run
+import agent_bench_automation.agent_harness.agent
+import agent_bench_automation.app.runner
 from agent_bench_automation.app.config import (
-    DEFAULT_HOST,
-    DEFAULT_PORT,
     DEFAULT_MINIBENCH_HOST,
     DEFAULT_MINIBENCH_PORT,
-    DEFAULT_MINIBENCH_TIMEOUT_SECONDS,
 )
+from agent_bench_automation.common import log
 
 logger = logging.getLogger(__name__)
-log_format = "[%(asctime)s %(levelname)s %(name)s] %(message)s"
 
 
 def main():
-    parser = argparse.ArgumentParser(description="CISO Agent Benchmark")
+    parser = argparse.ArgumentParser(description="IT-Bench Agent Benchmark Automation")
     parser.add_argument("-v", "--verbose", help="Display verbose output", action="count", default=0)
 
-    # normal bench runner
-    parser.add_argument("-c", "--config", type=str, help="Path to the application configuration.")
-    parser.add_argument("-i", "--runner_id", type=str, help="Unique identifier for the runner.", required=True)
+    subparsers = parser.add_subparsers(dest="command", required=True)
 
-    # mini bench runner
-    parser.add_argument("--mini_runner", action="store_true", help="If specified, run mini bench runner")
-    parser.add_argument("--mini_taker", action="store_true", help="If specified, run mini bench taker")
-    parser.add_argument(
-        "--remote_host", type=str, default=DEFAULT_HOST, help=f"The hostname or IP address to remote Benchmark Server (default: {DEFAULT_HOST})."
-    )
-    parser.add_argument(
-        "--remote_port", type=int, default=DEFAULT_PORT, help=f"The port number to remote Benchmark Server (default: {DEFAULT_PORT})."
-    )
-    parser.add_argument(
-        "--remote_root_path",
+    # benchmark runner
+    parser_runner = subparsers.add_parser("runner", description="Run benchmark runner ", help="see `runner -h`")
+    parser_runner.add_argument("-c", "--config", type=str, help="Path to the application configuration.", required=True)
+    parser_runner.add_argument("-i", "--runner_id", type=str, help="Unique identifier for the runner.", required=True)
+    parser_runner.add_argument(
+        "-t",
+        "--service_type",
         type=str,
-        default="",
-        help=f"The root path of the application on the server. For example, '--remote_root_path=/myapp' results in 'http://<host>:<port>/myapp' (default: ''.)",
+        help="Specify the service type identifier for the runner. This value must match an existing AgentType.",
     )
-    parser.add_argument(
-        "--remote_ssl",
-        action="store_true",
-        help=f"Enable SSL for remote connections. If specified, SSL is enabled; otherwise, it is disabled (default: False).",
-    )
-    parser.add_argument(
-        "--remote_ssl_verify",
-        action="store_true",
-        help=f"Verify the SSL certificate for remote connections. If specified, the certificate will be verified; otherwise, verification is disabled (default: disabled).",
-    )
-    parser.add_argument("--remote_token", type=str, help=f"Bearer token of Benchmark Server.")
-    parser.add_argument(
-        "--minibench_host",
+    parser_runner.add_argument(
+        "--token",
         type=str,
-        default=DEFAULT_MINIBENCH_HOST,
-        help=f"The hostname or IP address to remote Mini Benchmark Server (default: {DEFAULT_MINIBENCH_HOST}).",
+        help="Specify the token to access the Bench Server.",
     )
-    parser.add_argument(
-        "--minibench_port",
-        type=int,
-        default=DEFAULT_MINIBENCH_PORT,
-        help=f"The port number to remote Mini Benchmark Server (default: {DEFAULT_MINIBENCH_PORT}).",
-    )
-    parser.add_argument(
-        "--minibench_root_path",
-        type=str,
-        default="",
-        help=f"The root path of the application on the server. For example, '--minibench_root_path=/myapp' results in 'http://<host>:<port>/myapp' (default: ''.)",
-    )
-    parser.add_argument(
-        "--minibench_ssl",
+    parser_runner.add_argument(
+        "--single_run",
         action="store_true",
-        help=f"Enable SSL for connections to Mini Benchmark. If specified, SSL is enabled; otherwise, it is disabled (default: False).",
+        help="Process one benchmark job and exit",
     )
-    parser.add_argument(
-        "--minibench_ssl_verify",
-        action="store_true",
-        help=f"Verify the SSL certificate for connections to Mini Benchmark. If specified, the certificate will be verified; otherwise, verification is disabled (default: disabled).",
+
+    # caa agent harness
+    parser_benchmark_agent = subparsers.add_parser(
+        "minibench-agent", description="Benchmark an agent with MiniBehcn Server", help="see `minibench-agent -h`"
     )
-    parser.add_argument(
-        "--minibench_timeout",
-        type=int,
-        default=DEFAULT_MINIBENCH_TIMEOUT_SECONDS,
-        help=f"Overall timeout seconds for minibench runner. If negative, it won't finish unless exception. (default: 600).",
+    parser_benchmark_agent.add_argument(
+        "--host", type=str, default=DEFAULT_MINIBENCH_HOST, help=f"The hostname or IP address (default: {DEFAULT_MINIBENCH_HOST})."
     )
+    parser_benchmark_agent.add_argument(
+        "--port", type=int, default=DEFAULT_MINIBENCH_PORT, help=f"The port number (default: {DEFAULT_MINIBENCH_PORT})."
+    )
+    parser_benchmark_agent.add_argument("-ad", "--agent_directory", type=str, default="caa-agent", help=f"Path to root directory of Agent project")
+    parser_benchmark_agent.add_argument("-i", "--input", type=str, help="Path to MiniBenchResult", required=True)
+    parser_benchmark_agent.add_argument("-c", "--config", type=str, help="Path to AgentHarness configuration")
 
     args = parser.parse_args()
 
     if args.verbose > 0:
-        logging.basicConfig(format=log_format, level=logging.DEBUG)
+        log.init(logging.DEBUG)
     else:
-        logging.basicConfig(format=log_format, level=logging.INFO)
+        log.init()
 
-    wait_timeout = args.minibench_timeout
-    wait_interval = 20
-    start = time.time()
-    while wait_timeout < 0 or time.time() - start < wait_timeout:
-        try:
-            if args.mini_taker:
-                taker.run(args)
-            elif args.mini_runner:
-                minibench.run(args)
-            else:
-                raise Exception("not implemented")
-                # bench_run(args)
-                # NOTE: Until circular import issue is fixed, we use `main.py` in the project root for remote runner
-        except ConnectionError as e:
-            print(f"Connection Error: {e}")
-            print(f"It seems that some endpoints are not ready. Retrying in {wait_interval} seconds...")
-            time.sleep(wait_interval)
-        except Exception:
-            raise
+    if args.command == 'runner':
+        agent_bench_automation.app.runner.run(args)
 
 
 if __name__ == "__main__":

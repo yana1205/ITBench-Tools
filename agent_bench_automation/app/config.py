@@ -18,68 +18,20 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings
 
-from agent_bench_automation.app.models.agent_type_definition import AgentTypeDefinition
-from agent_bench_automation.app.models.bundle import BundleSpec
-from agent_bench_automation.app.storage.config import StorageConfig
-
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8000
 DEFAULT_MINIBENCH_HOST = "127.0.0.1"
 DEFAULT_MINIBENCH_PORT = 8001
 DEFAULT_MINIBENCH_TIMEOUT_SECONDS = 600
 
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "tmp4now")
-# Session Encryption Key
-SESSION_SECRET_KEY = os.getenv("SESSION_SECRET_KEY", "tmp4nowsession")
-
-# Session Key Name
-TOKEN_SESSION_KEY = os.getenv("TOKEN_SESSION_KEY", "tmp4now")
-LEADERBOARD_SESSION_KEY = "leaderboard"
-OAUTH_ERROR_SESSION_KEY = "oauth_error"
-OAUTH_IT_BENCH_TOKEN_SESSION_KEY = "oauth_it_bench_token"
-
-HASH_ALGORITHM = "HS256"
-TOKEN_EXPIRATION_MINUTES = 60
-
-BASE_RESOURCE_REF_LABEL = "reference_id"
-ROOT_BENCHMARK_LABEL = "root"
-BENCHMARK_RESOURCE_ROOT = "_system"
-
-ROOT_PATH = os.getenv("ROOT_PATH", "")
 SERVICE_API_KEY = os.getenv("SERVICE_API_KEY", "")
-SERVICE_GITOPS_API_KEY = os.getenv("SERVICE_GITOPS_API_KEY", "")
 
 PROJECT_LOG_LEVEL = os.getenv("PROJECT_LOG_LEVEL", "")
 ROOT_LOG_LEVEL = os.getenv("ROOT_LOG_LEVEL", "")
 
-# FEATURE_FLAG_SOMETHING = os.getenv("FEATURE_FLAG_SOMETHING", "")
-FEATURE_FLAGS = {
-    # "FEATURE_FLAG_SOMETHING": FEATURE_FLAG_SOMETHING,
-}
-
-GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID", "")
-GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET", "")
-
-
-def get_feature_flag(name: str):
-    if name in FEATURE_FLAGS:
-        return FEATURE_FLAGS[name] == "true"
-    return False
-
 
 def get_service_api_key(service_name):
-    if service_name == "service_gitops":
-        return SERVICE_GITOPS_API_KEY
     return SERVICE_API_KEY
-
-
-class DefaultBundle(BaseModel):
-    bench_type: str = Field(..., description="Benchmark Type")
-    path: str = Field(None, description="Path to the bundles.json file. Used to load scenarios if the 'bundles' field is not provided.")
-    bundles: List[BundleSpec] = Field(
-        None,
-        description="List of bundles. If this field is defined, it takes precedence over the 'path' field, and the specified bundles will be used directly.",
-    )
 
 
 class ServiceAccount(BaseModel):
@@ -90,45 +42,13 @@ class ServiceAccount(BaseModel):
 class AppConfig(BaseSettings):
     host: Optional[str] = Field(DEFAULT_HOST, description="Host to bind the server. Default is 127.0.0.1.")
     port: Optional[int] = Field(DEFAULT_PORT, description="Port to bind the server. Default is 8000.")
-    storage_config: StorageConfig
-    default_bundles: Optional[List[DefaultBundle]] = Field([], description="Default bundles")
-    enable_auth: Optional[bool] = False
     enable_soft_delete: Optional[bool] = Field(False, description="Specifies whether to enable soft-delete (invoke Make revert).")
-    token: Optional[str] = None
-    default_agent_types: Optional[List[AgentTypeDefinition]] = Field([], description="Default Agent Type Definitions")
-    polling_interval: Optional[int] = Field(None, description="Seconds for polling interval.")
     service_accounts: Optional[List[ServiceAccount]] = None
-    admin_user: Optional[str] = "admin"
-    admin_pass: Optional[str] = "admin"
     ssl_enabled: Optional[bool] = Field(False, description="Enable or disable SSL. Set to True to enable SSL for the server.")
     ssl_verify: Optional[bool] = Field(
         False,
         description="Enable or disable SSL certificate verification. Set to True to verify the certificate, or False to disable verification (default: False).",
     )
-    ssl_auto_gen: Optional[bool] = Field(
-        False,
-        description="Enable automatic generation of a self-signed SSL certificate. If True, a certificate will be generated dynamically.",
-    )
-    ssl_auto_gen_dir: Optional[str] = Field(
-        None,
-        description="Directory path to save the automatically generated SSL certificate and key. Required if `ssl_auto_cert_gen` is True.",
-    )
-    ssl_auto_gen_common_name: Optional[str] = Field(
-        "localhost",
-        description="Common Name (CN) for the generated SSL certificate. Used as the hostname in the certificate. If not specified, defaults to 'localhost'.",
-    )
-    ssl_cert_file: Optional[str] = Field(
-        None, description="Path to the SSL certificate file. Required if SSL is enabled and not using auto-generated certificates."
-    )
-    ssl_key_file: Optional[str] = Field(
-        None, description="Path to the SSL key file. Required if SSL is enabled and not using auto-generated certificates."
-    )
-
-    github_auth_url: str = Field("https://github.com/login/oauth/authorize", description="URL for GitHub OAuth authorization.")
-    github_token_url: str = Field(
-        "https://github.com/login/oauth/access_token", description="URL to exchange authorization code for an access token."
-    )
-    github_user_url: str = Field("https://api.github.com/user", description="GitHub API endpoint to fetch user details.")
 
     class Config:
         env_file = ".env"
