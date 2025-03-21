@@ -1,0 +1,88 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "itbench-tools"
+requires-python = ">=3.11"
+keywords = ["one", "two"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+]
+
+dependencies = [
+  "fastapi==0.115.11",
+  "Jinja2==3.1.4",
+  "pandas==2.2.3",
+  "pydantic==2.9.1",
+  "pydantic-settings==2.7.1",
+  "requests==2.32.3",
+  "tabulate==0.9.0",
+  "urllib3>=2.2.2",
+]
+
+dynamic = ["version"]
+
+[project.scripts]
+itbench-tools = "itbench_tools.main:main"
+
+[project.optional-dependencies]
+dev = [
+  "build>=1.0.3",
+  "deepdiff==8.1.1",
+  "pyclean",
+  "pytest>=8.0.0",
+  "pytest-asyncio>=0.24.0",
+  "pytest-timeout==2.3.1",
+  "pre-commit>=2.4.0",
+  "black",
+  "isort",
+]
+
+[tool.setuptools.dynamic]
+version = {attr = "itbench_tools.__version__.__version__"}
+
+[tool.setuptools]
+package-dir = { "itbench_tools" = "itbench_tools" }
+
+[tool.pytest.ini_options]
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "[%(asctime)s %(levelname)s %(name)s] %(message)s"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+minversion = "6.0"
+timeout = 120
+timeout_func_only = true
+timeout_method = "thread"
+addopts = "-ra -q"
+testpaths = ["tests"]
+pythonpath = ["tests"]
+filterwarnings = [
+    "ignore::DeprecationWarning"
+]
+
+[tool.black]
+line-length = 150
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | caa-agent
+  | caa-bundle
+)/
+'''
+
+[tool.flake8]
+ignore = "E203, W503,"
+max-line-length = 150
+
+[tool.semantic_release.publish]
+upload_to_vcs_release = false
