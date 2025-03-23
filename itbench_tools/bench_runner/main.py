@@ -16,7 +16,7 @@ import argparse
 import logging
 
 import itbench_tools.agent_harness.agent
-import itbench_tools.app.runner
+import itbench_tools.bench_runner.runner
 from itbench_tools.app.config import (
     DEFAULT_MINIBENCH_HOST,
     DEFAULT_MINIBENCH_PORT,
@@ -75,7 +75,7 @@ def main():
         log.init()
 
     if args.command == 'runner':
-        itbench_tools.app.runner.run(args)
+        itbench_tools.bench_runner.runner.run(args)
 
 
 if __name__ == "__main__":
