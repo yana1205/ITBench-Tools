@@ -30,7 +30,7 @@ from itbench_tools.app.models.benchmark import (
     BenchmarkJobTake,
 )
 from itbench_tools.app.models.bundle import Bundle as BundleInApp
-from itbench_tools.app.runner_utils import (
+from itbench_tools.bench_runner.utils import (
     build_benchmark_run_config,
     get_specific_log_file_path,
     setup_request_logger,
