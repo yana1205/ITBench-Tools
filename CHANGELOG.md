@@ -1,6 +1,38 @@
 # CHANGELOG
 
 
+## v0.0.3 (2025-04-10)
+
+### Bug Fixes
+
+- Wrong arguments are passed in entrypoint ([#7](https://github.com/IBM/ITBench-Utilities/pull/7),
+  [`640ea21`](https://github.com/IBM/ITBench-Utilities/commit/640ea21e4c1eb9f2fb8161e6dc791a186b574ccf))
+
+Signed-off-by: Takumi Yanagawa <yana@jp.ibm.com>
+
+### Chores
+
+- Address vulnerability issues ([#5](https://github.com/IBM/ITBench-Utilities/pull/5),
+  [`1bc2b04`](https://github.com/IBM/ITBench-Utilities/commit/1bc2b04ea7584806ab07057370924e982c1cee8b))
+
+* chore: update package versions for vulnerability
+
+Signed-off-by: Takumi Yanagawa <yana@jp.ibm.com>
+
+* fix: typo
+
+* chore: make setuptools up to date
+
+* fix: missing to mount requirements.txt
+
+---------
+
+- Move to ghcr.io ([#6](https://github.com/IBM/ITBench-Utilities/pull/6),
+  [`772072f`](https://github.com/IBM/ITBench-Utilities/commit/772072fd2ec65144b89d09539bc454d404fec50c))
+
+Signed-off-by: Takumi Yanagawa <yana@jp.ibm.com>
+
+
 ## v0.0.2 (2025-03-23)
 
 ### Chores
