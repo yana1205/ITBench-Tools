@@ -166,13 +166,13 @@ class AgentHarness:
         return False
 
     async def run_agent(self, target_bundle: Bundle, benchmark_id: str, agent_id: str):
-        response = self.rest_client.get(f"/benchmarks/{benchmark_id}/agents/{agent_id}")
-        agent = Agent.model_validate(response.json())
-        agent_info = AgentInfo(id=agent.metadata.id, name=agent.spec.name, directory=self.agent_directory)
-        ao = AgentOperator(agent_info=agent_info)
-        self.rest_client.assign(benchmark_id, agent_id, target_bundle.metadata.id)
-        self.rest_client.push_agent_status(benchmark_id, agent_id, AgentPhaseEnum.Executing)
         try:
+            response = self.rest_client.get(f"/benchmarks/{benchmark_id}/agents/{agent_id}")
+            agent = Agent.model_validate(response.json())
+            agent_info = AgentInfo(id=agent.metadata.id, name=agent.spec.name, directory=self.agent_directory)
+            ao = AgentOperator(agent_info=agent_info)
+            self.rest_client.assign(benchmark_id, agent_id, target_bundle.metadata.id)
+            self.rest_client.push_agent_status(benchmark_id, agent_id, AgentPhaseEnum.Executing)
             shared_workspace = Path("/tmp") / "shared_workspace" / agent.metadata.id / target_bundle.spec.name
             shared_workspace.mkdir(parents=True, exist_ok=True)
             output_dir_per_bundle = Path("/tmp") / "output" / agent.metadata.id / target_bundle.spec.name
@@ -191,7 +191,10 @@ class AgentHarness:
         except Exception as e:
             err = traceback.format_exc()
             logger.error(err)
-            self.rest_client.push_agent_status(benchmark_id, agent_id, AgentPhaseEnum.Error, message=f"{e}")
+            try:
+                self.rest_client.push_agent_status(benchmark_id, agent_id, AgentPhaseEnum.Error, message=f"{e}")
+            except Exception as e2:
+                logger.error(f"Failed to update agent status to 'Error' for benchmark {benchmark_id!r} (agent {agent_id!r}): {e2}")
 
         def wait_bundle_finished():
             logger.info(f"Wait for bundle to finish...")
