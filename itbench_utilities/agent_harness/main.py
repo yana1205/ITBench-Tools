@@ -53,6 +53,8 @@ def main():
         action="store_true",
         help="Process one benchmark job and exit",
     )
+    parser.add_argument("--benchmark_exec_max_attempts", type=int, default=3, help=f"Maximum number of attempts to run the benchmark with status updates (default: 3).")
+    parser.add_argument("--benchmark_exec_retry_interval", type=int, default=5, help=f"Seconds to wait between retry attempts for benchmark execution (default: 5).")
 
     args = parser.parse_args()
 

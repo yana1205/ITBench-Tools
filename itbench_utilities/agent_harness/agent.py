@@ -47,6 +47,11 @@ class AgentHarnessConfig(BaseModel):
     path_to_data_pushed_to_scenario: Optional[str] = None
 
 
+class AgentHarnessOpts(BaseModel):
+    benchmark_exec_max_attempts: int = 3
+    benchmark_exec_retry_interval: int = 5
+
+
 class AgentHarness:
 
     def __init__(
@@ -62,6 +67,7 @@ class AgentHarness:
         single_run=False,
         interval=5,
         benchmark_timeout=300,
+        opts: Optional[AgentHarnessOpts] = AgentHarnessOpts(),
     ) -> None:
         self.agent_manifest = agent_manifest
         self.agent_directory = agent_directory
@@ -81,6 +87,7 @@ class AgentHarness:
         )
         self.stop_event = asyncio.Event()
         self.task_history = []
+        self.opts = opts
 
     async def run(self):
 
@@ -107,17 +114,12 @@ class AgentHarness:
                     benchmark_id = benchmark_entry.benchmark_id
                     logger.info(f"Take the benchmark '{benchmark_entry.benchmark_id}'")
                     self.add_history(benchmark_id)
-                    self.rest_client.put(
-                        f"{self.agent_manifest.manifest_endpoint}/benchmark-entries/{benchmark_id}",
-                        Status(phase=AgentPhaseEnum.Executing).model_dump_json(),
-                    )
-                    is_completed = await self.run_benchmark(benchmark_id, benchmark_entry.agent_access_info.id)
-                    if is_completed:
-                        phase = AgentPhaseEnum.Finished
-                    else:
-                        phase = AgentPhaseEnum.TimeedOut
-                    self.rest_client.put(
-                        f"{self.agent_manifest.manifest_endpoint}/benchmark-entries/{benchmark_id}", Status(phase=phase).model_dump_json()
+                    await run_with_retry(
+                        self.run_benchmark_with_status_update,
+                        retries=self.opts.benchmark_exec_max_attempts,
+                        delay=self.opts.benchmark_exec_retry_interval,
+                        benchmark_id=benchmark_id,
+                        benchmark_entry=benchmark_entry,
                     )
                 if self.single_run:
                     logger.info("Task completed. Exiting due to run-once mode.")
@@ -126,6 +128,18 @@ class AgentHarness:
                 logger.info(f"No benchmark entries with status 'NotStarted' found. Wait for {self.interval} seconds before the next check...")
             await asyncio.sleep(self.interval)
             elapsed_time += self.interval
+
+    async def run_benchmark_with_status_update(self, benchmark_id, benchmark_entry: AgentBenchmarkEntry):
+        self.rest_client.put(
+            f"{self.agent_manifest.manifest_endpoint}/benchmark-entries/{benchmark_id}",
+            Status(phase=AgentPhaseEnum.Executing).model_dump_json(),
+        )
+        is_completed = await self.run_benchmark(benchmark_id, benchmark_entry.agent_access_info.id)
+        if is_completed:
+            phase = AgentPhaseEnum.Finished
+        else:
+            phase = AgentPhaseEnum.TimeedOut
+        self.rest_client.put(f"{self.agent_manifest.manifest_endpoint}/benchmark-entries/{benchmark_id}", Status(phase=phase).model_dump_json())
 
     async def run_benchmark(self, benchmark_id, agent_id):
 
@@ -166,13 +180,13 @@ class AgentHarness:
         return False
 
     async def run_agent(self, target_bundle: Bundle, benchmark_id: str, agent_id: str):
-        response = self.rest_client.get(f"/benchmarks/{benchmark_id}/agents/{agent_id}")
-        agent = Agent.model_validate(response.json())
-        agent_info = AgentInfo(id=agent.metadata.id, name=agent.spec.name, directory=self.agent_directory)
-        ao = AgentOperator(agent_info=agent_info)
-        self.rest_client.assign(benchmark_id, agent_id, target_bundle.metadata.id)
-        self.rest_client.push_agent_status(benchmark_id, agent_id, AgentPhaseEnum.Executing)
         try:
+            response = self.rest_client.get(f"/benchmarks/{benchmark_id}/agents/{agent_id}")
+            agent = Agent.model_validate(response.json())
+            agent_info = AgentInfo(id=agent.metadata.id, name=agent.spec.name, directory=self.agent_directory)
+            ao = AgentOperator(agent_info=agent_info)
+            self.rest_client.assign(benchmark_id, agent_id, target_bundle.metadata.id)
+            self.rest_client.push_agent_status(benchmark_id, agent_id, AgentPhaseEnum.Executing)
             shared_workspace = Path("/tmp") / "shared_workspace" / agent.metadata.id / target_bundle.spec.name
             shared_workspace.mkdir(parents=True, exist_ok=True)
             output_dir_per_bundle = Path("/tmp") / "output" / agent.metadata.id / target_bundle.spec.name
@@ -191,7 +205,10 @@ class AgentHarness:
         except Exception as e:
             err = traceback.format_exc()
             logger.error(err)
-            self.rest_client.push_agent_status(benchmark_id, agent_id, AgentPhaseEnum.Error, message=f"{e}")
+            try:
+                self.rest_client.push_agent_status(benchmark_id, agent_id, AgentPhaseEnum.Error, message=f"{e}")
+            except Exception as e2:
+                logger.error(f"Failed to update agent status to 'Error' for benchmark {benchmark_id!r} (agent {agent_id!r}): {e2}")
 
         def wait_bundle_finished():
             logger.info(f"Wait for bundle to finish...")
@@ -228,6 +245,17 @@ class AgentHarness:
         self.task_history.append(item)
 
 
+async def run_with_retry(func, retries=3, delay=5, *args, **kwargs):
+    for attempt in range(1, retries + 1):
+        try:
+            return await func(*args, **kwargs)
+        except Exception as e:
+            logger.error(f"Attempt {attempt}/{retries} failed for {func.__name__}: {e}")
+            if attempt < retries:
+                await asyncio.sleep(delay)
+    raise RuntimeError(f"{func.__name__} failed after {retries} attempts")
+
+
 def run(args):
     with open(args.input) as f:
         agent_manifest = AgentManifest.model_validate_json(f.read())
@@ -238,6 +266,10 @@ def run(args):
             data = yaml.safe_load(f.read())
             config = AgentHarnessConfig.model_validate(data)
 
+    opts = AgentHarnessOpts(
+        benchmark_exec_retry_interval=args.benchmark_exec_retry_interval,
+        benchmark_exec_max_attempts=args.benchmark_exec_max_attempts,
+    )
     agent_harness = AgentHarness(
         agent_manifest,
         args.agent_directory,
@@ -249,5 +281,6 @@ def run(args):
         benchmark_timeout=args.benchmark_timeout,
         config=config,
         single_run=args.single_run,
+        opts=opts,
     )
     asyncio.run(agent_harness.run())
